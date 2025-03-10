@@ -3,10 +3,10 @@
 ## Sistema bancario
 ### creare un'applicazione Python che simula un sistema bancario:
 Con Arduino Freenove (usiamo come base il progetto già ralizzato con Freenove):
- - tastierino 4x4
- - scanner + tag RFID
- - bottoni
- - buzzer
+ - tastierino 4x4 (per l'inserimento password)
+ - scanner + tag RFID (per attivare le funzionalità)
+ - bottoni (per selezionare l'opzione)
+ - buzzer (per creare l'effetto sonoro dell'inserimento password)
  - ???
 
 Utilizziamo due Raspberry ???
