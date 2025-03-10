@@ -6,6 +6,7 @@ Con Arduino Freenove (usiamo come base il progetto già ralizzato con Freenove):
  - tastierino 4x4
  - scanner + tag RFID
  - bottoni
+ - buzzer
  - ???
 
 Utilizziamo due Raspberry ???
