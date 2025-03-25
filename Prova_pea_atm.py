@@ -7,8 +7,8 @@ ctk.set_default_color_theme("blue")
 
 # Database simulato
 database = {
-    "user1": {"password": "pass1", "saldo": 1000},
-    "user2": {"password": "pass2", "saldo": 500}
+    "user1": {"password": "pass1", "saldo": 1000, "transazioni": []},
+    "user2": {"password": "pass2", "saldo": 500, "transazioni": []},
 }
 
 class BancaGUI:
@@ -46,6 +46,21 @@ class BancaGUI:
         for widget in self.frame.winfo_children():
             widget.destroy()
         
+        self.transazioni = ctk.CTkLabel(
+            self.frame, 
+            text="Transazioni", 
+            font=("Arial", 15),
+            bg_color="white"
+        )
+        self.transazioni.pack(pady=20, fill="both", expand=True)
+
+        # Mostra la lista delle transazioni
+        transazioni_text = "Transazioni:\n"  # Inizializza il testo con un'intestazione
+        for i in database[self.user]["transazioni"]:
+            transazioni_text += f"{i[0]}: {i[1]}€\n"
+
+        self.transazioni.configure(text=transazioni_text)
+              
         self.saldo_label = ctk.CTkLabel(self.frame, text=f"Saldo: {database[self.user]['saldo']}€", font=("Arial", 20))
         self.saldo_label.pack(pady=20)
         
@@ -70,15 +85,22 @@ class BancaGUI:
                 amount = float(entry.get())
                 if tipo == "Prelievo" and amount > database[self.user]['saldo']:
                     messagebox.showerror("Errore", "Saldo insufficiente")
+                    window.destroy()
                 else:
                     if tipo == "Deposito":
                         database[self.user]['saldo'] += amount
+                        self.transazioni.configure(text=f"Deposito {amount}\n")
+                        database[self.user]['transazioni'].append(["Deposito", amount])
                     else:
                         database[self.user]['saldo'] -= amount
+                        self.transazioni.configure(text=f"Prelievo {amount}\n")
+                        database[self.user]['transazioni'].append(["Prelievo", amount])
                     messagebox.showinfo("Successo", f"{tipo} di {amount}€ completato!")
+                    window.destroy()
                     self.main_menu()
             except ValueError:
                 messagebox.showerror("Errore", "Importo non valido")
+                window.destroy()
         
         window = ctk.CTkToplevel(self.root)
         window.title(tipo)
@@ -87,7 +109,7 @@ class BancaGUI:
         ctk.CTkLabel(window, text=f"Inserisci importo per {tipo.lower()}: ").pack(pady=10)
         entry = ctk.CTkEntry(window)
         entry.pack(pady=5)
-        ctk.CTkButton(window, text="Conferma", command=conferma).pack(pady=10)
+        ctk.CTkButton(window, text="Conferma", command=conferma).pack(pady=10)       
     
     def logout(self):
         for widget in self.frame.winfo_children():
