@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox as ms
+from tkcalendar import Calendar
 
 database = {
     "user1": {"nome": "Andrea","password": "pass1", "saldo": 1000, "transazioni": []},
@@ -13,14 +14,87 @@ class FrameMenu(ctk.CTkFrame):
         self.lbl_titolo = ctk.CTkLabel(self, text="MENU", anchor="center")
         self.lbl_titolo.grid(row=0, column=0, padx=20, pady=20, sticky="nsew" )
 
-        self.button1 = ctk.CTkButton(self, text="Bottone 1", command=self.button_callback)
-        self.button1.grid(row=1, column=0, padx=20, pady=(50, 20), sticky="nw")
+        self.button_preleva = ctk.CTkButton(self, text="Preleva", command=self.preleva)
+        self.button_preleva.grid(row=1, column=0, padx=20, pady=(50, 20), sticky="nw")
 
-        self.button2 = ctk.CTkButton(self, text="Bottone 2")
-        self.button2.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="nw")
+        self.button_deposita = ctk.CTkButton(self, text="Deposita")
+        self.button_deposita.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="nw")
 
-    def button_callback(self):
-        print("ciao")
+        self.button_transazione = ctk.CTkButton(self, text="Visualizza Transazioni")
+        self.button_transazione.grid(row=3, column=0, padx=20, pady=(0, 20), sticky="nw")
+
+        self.button_settings = ctk.CTkButton(self, text="Impostazioni")
+        self.button_settings.grid(row=4, column=0, padx=20, pady=(0, 20), sticky="nw")
+
+    def preleva(self):
+        if hasattr(self.master, "principal_frame"):
+            self.master.principal_frame.destroy()
+
+        self.master.principal_frame = PrelevaFrame(self.master)
+        self.master.principal_frame.grid(row=0, column=1, padx=0, pady=0, sticky="nsew", columnspan=1)
+
+class PrelevaFrame(ctk.CTkFrame):
+    def __init__(self,master):
+        super().__init__(master)
+
+        self.grid_columnconfigure(0, weight=1)
+
+        self.configure(fg_color=master.cget("bg"))
+
+        self.lbl_titolo = ctk.CTkLabel(self, text="Effettua prelievo", font=("Helvetica", 30), anchor="center")
+        self.lbl_titolo.grid(row=0, column=0, padx=20, pady=20, sticky="new")
+
+        self.frame_importo = FrameImporto(self)
+        self.frame_importo.grid(row=3, column=0, padx=30, pady=(100, 0), sticky="new")
+
+class FrameImporto(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master)
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+
+        self.lbl_importo = ctk.CTkLabel(self, text="Inserisci l'importo del prelievo", font=("Helvetica", 15), anchor="center")
+        self.lbl_importo.grid(row=0, column=0, padx=0, pady=(20, 30), sticky="ew")
+
+        self.importo_entry = ctk.CTkEntry(self)
+        self.importo_entry.grid(row=1, column=0, padx=20, pady=(0, 30), sticky="ew")
+
+        self.lbl_data = ctk.CTkLabel(self, text="Seleziona la data del prelievo", font=("Helvetica", 15), anchor="center")
+        self.lbl_data.grid(row=2, column=0, padx=0, pady=(0, 20), sticky="new")
+        
+        self.button_open_calendar = ctk.CTkButton(self, text="Apri Calendario", command=self.open_calendar)
+        self.button_open_calendar.grid(row=3, column=0, padx=20, pady=10, sticky="new")
+        
+        self.descrizione_area = ctk.CTkTextbox(self)
+        self.descrizione_area.insert("0.0","Descrizione del prelievo")
+        self.descrizione_area.grid(row=0, column=1, padx=20, pady=20, sticky="nsew", rowspan=4)
+
+       
+    def open_calendar(self):
+        DatePicker(self, self.set_date)
+
+    def set_date(self, date):
+        self.button_open_calendar.configure(text=date)
+
+class DatePicker(ctk.CTkToplevel):  
+    def __init__(self, master, callback):
+        super().__init__(master)
+        self.title("Seleziona la data")
+        self.geometry("300x300")
+
+        self.cal = Calendar(self, selectmode="day", date_pattern="dd/mm/yyyy")
+        self.cal.pack(pady=20)
+
+        self.btn_ok = ctk.CTkButton(self, text="Conferma", command=lambda: self.select_date(callback))
+        self.btn_ok.pack(pady=10)
+
+    def select_date(self, callback):
+        selected_date = self.cal.get_date()
+        callback(selected_date)  
+        self.destroy()
+
+       
 
 class FrameHome(ctk.CTkFrame):
     def __init__(self, master, user):
@@ -37,7 +111,6 @@ class FrameHome(ctk.CTkFrame):
         self.lbl_titolo.grid(row=0, column=0, padx=20, pady=(20, 0), columnspan=1, sticky="new")
 
 
-
 class App(ctk.CTk):
     def __init__(self, user):
         super().__init__()
@@ -45,7 +118,7 @@ class App(ctk.CTk):
         self.title("prova")
         self.geometry("1200x800")
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=10)
+        self.grid_columnconfigure(1, weight=20)
         self.grid_rowconfigure(0, weight=1)
         ctk.set_appearance_mode("dark")
 
@@ -54,8 +127,8 @@ class App(ctk.CTk):
         self.menu_frame = FrameMenu(self)
         self.menu_frame.grid(row=0, column=0, padx=(10,0), pady=10, sticky="nws")
 
-        self.home_frame = FrameHome(self,user)
-        self.home_frame.grid(row=0, column=1, padx=0, pady=0, sticky="nsew",columnspan=1)
+        self.principal_frame = FrameHome(self,user)
+        self.principal_frame.grid(row=0, column=1, padx=0, pady=0, sticky="nsew",columnspan=1)
 
 class Login(ctk.CTk):
     def __init__(self):
@@ -100,6 +173,8 @@ class Login(ctk.CTk):
             app.mainloop()
         else:
             ms.showerror("Errore", "Credenziali errate")
+
+
         
 
 app = Login()
