@@ -7,7 +7,7 @@
 #define COLS 3
 // Pin utilizzati per il modulo RFID
 #define SS_PIN 10
-#define RST_PIN 7
+#define RST_PIN 9
 
 // Menu con le opzioni disponibili
 const char* menu[] = {
