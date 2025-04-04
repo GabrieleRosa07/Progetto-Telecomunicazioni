@@ -135,7 +135,12 @@ def connettiArduino():
 
 
 if __name__ == "__main__":
-    ser = serial.Serial('COM3', 115200, timeout=1)
+    ser = serial.Serial(
+    port='/dev/serial0', 
+    port='/dev/ttyUSB0',
+    baudrate=9600,        
+    timeout=1            
+    )   
 
     if ser.is_open:
         print("Avvio ATM...")
