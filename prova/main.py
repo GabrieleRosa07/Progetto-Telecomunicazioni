@@ -122,7 +122,7 @@ def calcolaTotale():
 def connettiArduino():
     try:
         while True:
-            line = ser.readline().decode('utf-8').strip()
+            line = ser.readline().decode('utf-8', errors='ignore').strip()
             if line:
                 if("entrata" in line or "uscita" in line):
                     aggiungi_transazione(line)
