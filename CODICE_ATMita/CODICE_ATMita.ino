@@ -39,29 +39,35 @@ Keypad keypad = Keypad(makeKeymap(keymap), rowPins, colPins, ROWS, COLS);
 char code[5] = "7643";
 
 // Variabile per memorizzare il saldo totale
-int totCash = 1000;
+float totCash;
 
 void setup() {
-  Serial.begin(9600); // Avvia la comunicazione seriale
+  Serial.begin(115200);
+  //Serial.begin(9600); // Avvia la comunicazione seriale
   SPI.begin(); // Inizializza la comunicazione SPI
   rfid.PCD_Init(); // Inizializza il modulo RFID
 }
 
 void loop() {
-  if (readTag()) { // Se viene letto un tag RFID
-    if (verifyCode()) { // Verifica se il codice inserito è corretto
-      bool exitMenu = false; // Flag per uscire dal menu
+  if(Serial.available() > 0){
+    Serial.print("Connessione con python stabilita\n");
+    String received_data = Serial.readStringUntil('\n');
+    totCash = received_data.toFloat();
+  } 
+    if (readTag()) { // Se viene letto un tag RFID
+      if (verifyCode()) { // Verifica se il codice inserito è corretto
+        bool exitMenu = false; // Flag per uscire dal menu
 
-      while (!exitMenu) { // Ciclo principale del menu
-        displayMenu(); // Mostra il menu
-        exitMenu = handleSelection(); // Gestisce la selezione dell'utente
+        while (!exitMenu) { // Ciclo principale del menu
+          displayMenu(); // Mostra il menu
+          exitMenu = handleSelection(); // Gestisce la selezione dell'utente
+        }
+        
+        Serial.println("Grazie per aver usato il nostro servizio!"); // Messaggio di uscita
+      } else {
+        Serial.println("Codice errato. Accesso negato."); // Codice errato
       }
-      
-      Serial.println("Grazie per aver usato il nostro servizio!"); // Messaggio di uscita
-    } else {
-      Serial.println("Codice errato. Accesso negato."); // Codice errato
     }
-  }
 }
 
 // Funzione per leggere un tag RFID
@@ -127,6 +133,7 @@ bool handleSelection() {
       Serial.println("Inserisci soldi: ");
       int cash = readNumber(); // Legge l'importo da inserire
       totCash += cash; // Aggiunge l'importo al saldo
+      Serial.println("entrata 03/0472025 "+ String(cash) + " deposito");
       Serial.println("Saldo attuale: " + String(totCash)); // Mostra il saldo
       break;
     }
@@ -137,6 +144,7 @@ bool handleSelection() {
         Serial.println("Saldo insufficiente!"); // Mostra il messaggio di errore
       } else {
         totCash -= amount; // Sottrae l'importo dal saldo
+        Serial.println("uscita 03/0472025 "+ String(amount) + " pagamento");
         Serial.println("Saldo attuale: " + String(totCash)); // Mostra il saldo
       }
       break;
