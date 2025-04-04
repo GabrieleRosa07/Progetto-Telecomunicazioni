@@ -136,7 +136,6 @@ def connettiArduino():
 
 if __name__ == "__main__":
     ser = serial.Serial(
-    port='/dev/serial0', 
     port='/dev/ttyUSB0',
     baudrate=9600,        
     timeout=1            
