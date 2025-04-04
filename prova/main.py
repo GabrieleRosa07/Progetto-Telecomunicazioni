@@ -151,11 +151,7 @@ def connettiArduino():
         ser.close()  # Chiude la connessione seriale
 
 if __name__ == "__main__":
-    ser = serial.Serial(
-    port='/dev/ttyUSB0',
-    baudrate=9600,        
-    timeout=1            
-    )   
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
     if ser.is_open:
         print("Avvio ATM...")

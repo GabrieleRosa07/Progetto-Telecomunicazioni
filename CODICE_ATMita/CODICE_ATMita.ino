@@ -46,6 +46,7 @@ void setup() {
   //Serial.begin(9600); // Avvia la comunicazione seriale
   SPI.begin(); // Inizializza la comunicazione SPI
   rfid.PCD_Init(); // Inizializza il modulo RFID
+  delay(2000);
   Serial.println("READY");
 }
 
