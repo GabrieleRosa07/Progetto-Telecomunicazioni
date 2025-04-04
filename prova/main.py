@@ -121,18 +121,34 @@ def calcolaTotale():
 
 def connettiArduino():
     try:
+        # Inizializzazione della connessione seriale
+        ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+        print("Attesa di READY da Arduino...")
+        
+        # Aspetta che Arduino invii "READY"
+        while True:
+            raw = ser.readline()
+            try:
+                line = raw.decode('utf-8').strip()
+                if line == "READY":
+                    print("Arduino pronto.")
+                    break  # Esci quando Arduino è pronto
+            except UnicodeDecodeError:
+                print("Byte non decodificabile ricevuto:", raw)
+
+        # Una volta che Arduino è pronto, inizia a leggere i dati
         while True:
             line = ser.readline().decode('utf-8', errors='ignore').strip()
             if line:
                 if("entrata" in line or "uscita" in line):
-                    aggiungi_transazione(line)
+                    aggiungi_transazione(line)  # Aggiungi la transazione se trovata
                 else:
-                    print(f"{line}")
-    except KeyboardInterrupt:
-        print("chiusura della connessione")
-    finally:
-        ser.close()
+                    print(f"Ricevuto: {line}")  # Stampa qualunque altro messaggio
 
+    except KeyboardInterrupt:
+        print("Chiusura della connessione")
+    finally:
+        ser.close()  # Chiude la connessione seriale
 
 if __name__ == "__main__":
     ser = serial.Serial(
