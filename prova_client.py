@@ -24,7 +24,7 @@ def send_transaction():
 
     finally:
         client_sock.close()
-        print("[CLIENT] Connessione chiusa.")
+        print("[CLIENT] Connessione chiusa")
 
 if __name__ == "__main__":
     send_transaction()
