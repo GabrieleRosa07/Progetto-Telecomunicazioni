@@ -1,7 +1,7 @@
 import bluetooth
 import pickle
 
-server_address = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+server_address = "B8:27:EB:62:DD:D0"
 
 def send_transaction():
     client_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
