@@ -1,7 +1,8 @@
 import sqlite3
-#import bluetooth
+import bluetooth
 import time
 import serial
+import pickle
 
 def setup_db():
     connection = sqlite3.connect("finanza.db")
@@ -138,6 +139,58 @@ def connettiArduino():
     finally:
         ser.close()  # Chiude la connessione seriale
 
+def avvioSistema():
+    setup_db()
+    saldo = calcolaTotale()
+
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+    time.sleep(2)
+    print("Avvio ATM...")
+
+    server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+    server_sock.bind(("", bluetooth.PORT_ANY))
+    server_sock.listen(1)
+    port = server_sock.getsockname()[1]
+    uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+
+    bluetooth.advertise_service(
+        server_sock,
+        "TransactionServer",
+        service_id=uuid,
+        service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
+        profiles=[bluetooth.SERIAL_PORT_PROFILE]
+    )
+
+    print("[SERVER] In attesa di connessioni di Bluetooth...")
+    client_sock, client_info = server_sock.accept()
+    print(f"[SERVER] Connesso a: {client_info}")
+
+    try:
+        while True:
+            line = ser.readline().decode('utf-8', errors='ignore').strip()
+            if line:
+                if "entrata" in line or "uscita" in line:
+                    aggiungi_transazione(line)
+                    print(f"[SERVER] Transazione salvata: {line}")
+
+                    saldo = calcolaTotale()
+                    print(f"[SERVER] Nuovo saldo: {saldo} €")
+
+                    client_sock.send(pickle.dumps(saldo))
+                else:
+                    print(f"Ricevuto: {line}")
+    except KeyboardInterrupt:
+        print("[SERVER] Interrotto manualmente")
+
+    except Exception as e:
+        print(f"[SERVER] Errore: {e}")
+    
+    finally:
+        client_sock.close()
+        server_sock.close()
+        ser.close()
+        print("[SERVER] Connessioni chiuse")
+
 if __name__ == "__main__":
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
@@ -153,7 +206,9 @@ if __name__ == "__main__":
     print("Avvicina Tessera")
 
     #connetti()
-    connettiArduino()
-    stampa()
+    # connettiArduino()
+    # stampa()
 
-    ser.close()
+    # ser.close()
+
+    avvioSistema()
