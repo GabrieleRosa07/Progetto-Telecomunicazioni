@@ -1,7 +1,8 @@
 import bluetooth
 
-# UUID del servizio cercato
-uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+host = "B8:27:EB:62:DD:D0"
+port = 1
+
 
 print("[CLIENT] Ricerca servizi Bluetooth...")
 services = bluetooth.find_service(uuid=uuid)
@@ -10,10 +11,6 @@ if not services:
     print("[CLIENT] Nessun servizio trovato.")
     exit()
 
-# Connessione al primo servizio trovato
-service = services[0]
-host = service["host"]
-port = service["port"]
 
 print(f"[CLIENT] Connessione a {host} sulla porta {port}...")
 
