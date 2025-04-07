@@ -1,51 +1,46 @@
 import bluetooth
-import pickle
 
-def start_server():
-    server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-    server_sock.bind(("", bluetooth.PORT_ANY))
-    server_sock.listen(1)
+# Creazione del socket Bluetooth
+server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+server_sock.bind(("", bluetooth.PORT_ANY))
+server_sock.listen(1)
+print("[+] Socket bluetooth creato e in ascolto")
 
-    port = server_sock.getsockname()[1]
-    print(f"[SERVER] In ascolto sulla porta RFCOMM {port}")
+# Ottieni la porta
+port = server_sock.getsockname()[1]
+uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+print("[+] Porta relativa al socket : " + str(port))
 
-    uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+# Pubblicazione del servizio
+try:
+    bluetooth.advertise_service(
+        server_sock,
+        "AutoAcceptServer",
+        service_id=uuid,
+        service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
+        profiles=[bluetooth.SERIAL_PORT_PROFILE]
+    )
+    print("[!] Servizio disponibile all'esterno")
+except bluetooth.BluetoothError as e:
+    print("[-] Errore nella pubblicazione del servizio\n\t" + str(e))
 
+while True:
+    print("[ Server in attesa di connessioni dall'esterno ]")
     try:
-        print("[SERVER] Pronto a pubblicare il servizio")
-        bluetooth.advertise_service(
-            server_sock,
-            "TransactionServer",
-            service_id=uuid,
-            service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
-            profiles=[bluetooth.SERIAL_PORT_PROFILE]
-        )
-        print("[SERVER] Servizio pubblicato con successo")
-    except Exception as e:
-        print("[SERVER] Errore:", e)
+        client_sock, client_info = server_sock.accept()
+        print("[+] Client connesso : " + str(client_info))
+        print("[START Chat]")
+        while True:
+            data = client_sock.recv(1024)
+            if not data:
+                break
+            print("Ricevuto:", data.decode())
 
-    print("[SERVER] In attesa di connessioni...")
+    except OSError:
+        pass
 
-    client_sock, client_info = server_sock.accept()
-    print(f"[SERVER] Connesso a {client_info}")
-
-    try:
-        data = client_sock.recv(1024)
-        if data:
-            msg = pickle.loads(data)
-            print(f"[SERVER] Ricevuto: {msg}")
-
-            saldo = 999.99  # esempio
-            client_sock.send(pickle.dumps(saldo))
-            print(f"[SERVER] Inviato saldo: {saldo}")
-
-    except Exception as e:
-        print(f"[SERVER] Errore: {e}")
-
-    finally:
-        client_sock.close()
-        server_sock.close()
-        print("[SERVER] Connessione chiusa")
-
-if __name__ == "__main__":
-    start_server()
+    client_sock.close()
+    print("[END Chat]")
+    print("[-] Client disconnesso")
+server_sock.close()
+print("[Server terminato.]")
