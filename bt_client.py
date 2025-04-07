@@ -74,4 +74,4 @@ while True:
                 print("[+] Tentativo di connessione all'host...")
                 connect_to_server(addr, name)
             except Exception as e:
-                print("[/] Erro
+                print("[/] Errore nell'iterazione del dispositivo")
