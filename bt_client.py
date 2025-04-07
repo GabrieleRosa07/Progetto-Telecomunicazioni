@@ -1,26 +1,26 @@
 import bluetooth
 
-host = "B8:27:EB:62:DD:D0"
-port = 1
-
-
-print(f"[CLIENT] Connessione a {host} sulla porta {port}...")
+server_mac_address = 'B8:27:EB:62:DD:D0' 
+port = 1  # Stesso numero di porta del server
 
 sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-sock.connect((host, port))
 
 try:
+    print(f"Connessione al server {server_mac_address}...")
+    sock.connect((server_mac_address, port))
+    print("Connesso!")
+
     while True:
-        # Invia messaggio
-        msg = input("[TU (CLIENT)]: ")
-        sock.send(msg.encode())
+        message = input("Scrivi un messaggio ('exit' per terminare): ")
+        if message.lower() == "exit":
+            break
+        sock.send(message)
 
-        # Riceve risposta
-        data = sock.recv(1024)
-        print(f"[SERVER]: {data.decode()}")
+except bluetooth.btcommon.BluetoothError as err:
+    print(f"Errore di connessione: {err}")
 
-except OSError:
-    print("[CLIENT] Connessione chiusa.")
+finally:
+    print("Disconnessione...")
+    sock.close()
 
-sock.close()
 
