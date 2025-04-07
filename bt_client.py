@@ -4,14 +4,6 @@ host = "B8:27:EB:62:DD:D0"
 port = 1
 
 
-print("[CLIENT] Ricerca servizi Bluetooth...")
-services = bluetooth.find_service(uuid=uuid)
-
-if not services:
-    print("[CLIENT] Nessun servizio trovato.")
-    exit()
-
-
 print(f"[CLIENT] Connessione a {host} sulla porta {port}...")
 
 sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
