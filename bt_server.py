@@ -1,46 +1,40 @@
 import bluetooth
 
-# Creazione del socket Bluetooth
-server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-server_sock.bind(("", bluetooth.PORT_ANY))
-server_sock.listen(1)
-print("[+] Socket bluetooth creato e in ascolto")
+def run_server():
+    server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+    server_sock.bind(("", bluetooth.PORT_ANY))
+    server_sock.listen(1)
 
-# Ottieni la porta
-port = server_sock.getsockname()[1]
-uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
-print("[+] Porta relativa al socket : " + str(port))
+    port = server_sock.getsockname()[1]
+    uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
 
-# Pubblicazione del servizio
-try:
     bluetooth.advertise_service(
         server_sock,
-        "AutoAcceptServer",
+        "EchoServer",
         service_id=uuid,
         service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
-        profiles=[bluetooth.SERIAL_PORT_PROFILE]
+        profiles=[bluetooth.SERIAL_PORT_PROFILE],
     )
-    print("[!] Servizio disponibile all'esterno")
-except bluetooth.BluetoothError as e:
-    print("[-] Errore nella pubblicazione del servizio\n\t" + str(e))
 
-while True:
-    print("[ Server in attesa di connessioni dall'esterno ]")
+    print(f"[*] In attesa di connessioni su porta {port}...")
+
+    client_sock, client_info = server_sock.accept()
+    print(f"[+] Connessione accettata da {client_info}")
+
     try:
-        client_sock, client_info = server_sock.accept()
-        print("[+] Client connesso : " + str(client_info))
-        print("[START Chat]")
         while True:
             data = client_sock.recv(1024)
             if not data:
                 break
-            print("Ricevuto:", data.decode())
-
+            print(f"[Client]: {data.decode('utf-8')}")
+            response = input("[Tu]: ")
+            client_sock.send(response)
     except OSError:
         pass
 
+    print("[-] Connessione terminata.")
     client_sock.close()
-    print("[END Chat]")
-    print("[-] Client disconnesso")
-server_sock.close()
-print("[Server terminato.]")
+    server_sock.close()
+
+if __name__ == "__main__":
+    run_server()
