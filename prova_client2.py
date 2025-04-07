@@ -1,7 +1,7 @@
 import bluetooth
 
 # Indirizzo MAC del server
-server_address = "B8:27:EB:62:DD:D0"  # Sostituisci con l'indirizzo MAC della Raspberry Pi server
+server_address = "B8:27:EB:62:DD:D0"  
 port = 1  # Assicurati di utilizzare la stessa porta del server
 
 # Creazione del socket client
