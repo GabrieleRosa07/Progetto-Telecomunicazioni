@@ -12,19 +12,17 @@ def start_server():
     uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
 
     try:
-	print("[SERVER] Pronto a pubblicare il servizio")
-    	bluetooth.advertise_service(
+        print("[SERVER] Pronto a pubblicare il servizio")
+        bluetooth.advertise_service(
             server_sock,
-	    "TransactionServer",
+            "TransactionServer",
             service_id=uuid,
-	    service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
+            service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
             profiles=[bluetooth.SERIAL_PORT_PROFILE]
-	)
-
-	print("[SERVER] Servizio pubblicato con successo")
-
+        )
+        print("[SERVER] Servizio pubblicato con successo")
     except Exception as e:
-	print("[SERVER] Errore")
+        print("[SERVER] Errore:", e)
 
     print("[SERVER] In attesa di connessioni...")
 
