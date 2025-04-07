@@ -1,34 +1,48 @@
 import bluetooth
 
-# Configurazione del server
-server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-port = bluetooth.PORT_ANY # Assegna una porta disponibile automaticamente
-server_socket.bind(("", port))
-server_socket.listen(1)
 
-# Pubblica il servizio
-bluetooth.advertise_service(
-    server_socket,
-    "Piserver",
-    service_classes = [bluetooth.SERIAL_PORT_CLASS],
-    profiles = [bluetooth.SERIAL_PORT_PROFILE],
-)
+# Creazione del socket Bluetooth
+server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+server_sock.bind(("", bluetooth.PORT_ANY))
+server_sock.listen(1)
+print("[+] Socket bluetooth creato e in ascolto")
 
-print(f"Server in attesa di connessioni sulla porta {port}...")
+# Ottieni la porta
+port = server_sock.getsockname()[1]
+uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+print("[+] Porta relativa al socket : " + str(port))
 
+# Pubblicazione del servizio
 try:
-    client_socket, client_address = server_socket.accept()
-    print(f"Connessione stabilita con: {client_address}")
+    bluetooth.advertise_service(
+        server_sock,
+        "AutoAcceptServer",
+        service_id=uuid,
+        service_classes=[uuid, bluetooth.SERIAL_PORT_CLASS],
+        profiles=[bluetooth.SERIAL_PORT_PROFILE]
+    )
+    print("[!] Servizio disponibile all'esterno")
+except bluetooth.BluetoothError as e:
+    print("[-] Errore nella pubblicazione del servizio\n\t" + str(e))
 
-    while True:
-        data = client_socket.recv(1024).decode("utf-8")
-        if data.lower() == "exit":
-            print("Connessione terminata dal client.")
-            break
-        print(f"Ricevuto: {data}")
-        client_socket.send("Messaggio ricevuto!".encode("utf-8"))
-except Exception as e:
-    print(f"Errore: {e}")
-finally:
-    client_socket.close()
-    server_socket.close()
+while True:
+    print("[ Server in attesa di connessioni dall'esterno ]")
+    try:
+        client_sock, client_info = server_sock.accept()
+        print("[+] Client connesso : " + str(client_info))
+        print("[START Chat]")
+        while True:
+            data = client_sock.recv(1024)
+            if not data:
+                break
+            print("Ricevuto:", data.decode())
+
+    except OSError:
+        pass
+
+    client_sock.close()
+    print("[END Chat]")
+    print("[-] Client disconnesso")
+server_sock.close()
+print("[Server terminato.]")
+
