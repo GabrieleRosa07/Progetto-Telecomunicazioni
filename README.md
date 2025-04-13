@@ -62,32 +62,9 @@ Il sistema è composto da:
 3.  **Esecuzione Applicazione**:
     * Avviare gli script Python sui Raspberry Pi.
     * Accedere all'applicazione web tramite browser o smartphone.
-
-## Codice di esempio.
-
-* Comunicazione Bluetooth tra raspberry pi.
-* interfaccia grafica per la gestione delle operazioni bancarie.
-* invio di transazioni tramite bluetooth.
-
-## Autori
-
-* \[I tuoi dati]
-
-## Licenza
-
-* \[La licenza del tuo progetto]
-
-## Contributi
-
-* \[Eventuali informazioni sui contributi]
-
+    * 
 ## Risorse aggiuntive
 
 * [link del canale per realizzare app grafica da pc e da smartphone](https://www.programmareinpython.it/corsi-e-lezioni-python-dal-nostro-canale-youtube/)
 
-## Note
 
-* Questo progetto è una simulazione a scopo didattico.
-* L'implementazione finale può variare in base alle specifiche esigenze.
-
-Spero che questa versione del README sia più adatta alla tua presentazione!
