@@ -1,20 +1,70 @@
-# Progetto-Telecomunicazioni
+# Progetto-Telecomunicazioni: Sistema Bancario Interattivo
 
-## Sistema bancario
-### creare un'applicazione Python che simula un sistema bancario:
-Con Arduino Freenove (usiamo come base il progetto già ralizzato con Freenove):
- - tastierino 4x4 (per l'inserimento password)
- - scanner + tag RFID (per attivare le funzionalità)
- - bottoni (per selezionare l'opzione)
- - buzzer (per creare l'effetto sonoro dell'inserimento password)
- - ???
+## Introduzione
 
-Utilizziamo due Raspberry ???
+Questo progetto dimostrativo simula un sistema bancario avanzato, integrando interazione fisica tramite Arduino e un'interfaccia web dinamica su Raspberry Pi. L'obiettivo è creare un'esperienza utente completa, dalla gestione dell'autenticazione tramite RFID e password, alla visualizzazione delle transazioni e all'esecuzione di operazioni bancarie tramite un'applicazione web accessibile anche da smartphone.
 
-ipotesi:
- 
- - **Raspberry 1:** raccoglie i dati dall'Arduino tramite collegamento seriale, li invia al Raspberry 2 tramite connessione Bluetooth. gestisce un database e un file csv contendendo tutte le transazioni. questi dati li invia a arduino e all'altro Raspberry.
- - **Raspberry 2:** su un server Flask carica un'applicazione Python che presenta la Home della banca con le transizioni effettuate. Questa applicazione può essere visitata anche da smartphone, autenticandosi con un tag NFC/RFID ???
+## Architettura del Sistema
+
+Il sistema è composto da:
+
+* **Arduino Freenove**:
+    * Funge da interfaccia utente fisica, gestendo l'inserimento della password tramite tastierino 4x4, l'autenticazione tramite scanner RFID, la selezione delle operazioni tramite bottoni e il feedback sonoro tramite buzzer.
+* **Raspberry Pi (x2)**:
+    * **Raspberry Pi 1**:
+        * Raccoglie i dati dall'Arduino tramite comunicazione seriale.
+        * Invia i dati al Raspberry Pi 2 tramite connessione Bluetooth.
+        * Gestisce un database locale e un file CSV per la registrazione delle transazioni.
+        * Invia aggiornamenti di stato all'Arduino e al Raspberry Pi 2.
+    * **Raspberry Pi 2**:
+        * Ospita un server Flask che esegue un'applicazione web Python.
+        * L'applicazione web presenta la home page della banca, visualizza le transazioni e consente l'esecuzione di operazioni bancarie.
+        * L'applicazione è accessibile anche da smartphone, con autenticazione tramite tag NFC/RFID.
+
+## Flusso di Lavoro
+
+1.  **Autenticazione**:
+    * L'utente si autentica tramite RFID e inserisce la password sul tastierino Arduino.
+    * I dati di autenticazione vengono inviati al Raspberry Pi 1 per la verifica.
+2.  **Selezione Operazione**:
+    * L'utente seleziona l'operazione desiderata tramite i bottoni sull'Arduino.
+    * L'operazione selezionata viene inviata al Raspberry Pi 1.
+3.  **Elaborazione Transazione**:
+    * Il Raspberry Pi 1 elabora la transazione, aggiorna il database e invia i dati al Raspberry Pi 2.
+4.  **Visualizzazione Web**:
+    * Il Raspberry Pi 2 visualizza le transazioni aggiornate sull'applicazione web.
+    * L'utente può visualizzare il saldo e la cronologia delle transazioni, ed effettuare operazioni bancarie tramite l'interfaccia web.
+
+## Tecnologie Utilizzate
+
+* **Arduino**:
+    * Linguaggio C/C++.
+    * Librerie per la gestione di tastierino, RFID, bottoni e buzzer.
+* **Raspberry Pi**:
+    * Python 3.x.
+    * Librerie: Flask, customtkinter, tkcalendar, pyserial, bluetooth, pickle.
+    * database locale.
+* **Comunicazione**:
+    * Comunicazione seriale (Arduino - Raspberry Pi 1).
+    * Comunicazione Bluetooth (Raspberry Pi 1 - Raspberry Pi 2).
+    * NFC/RFID.
+
+## Configurazione e Esecuzione
+
+1.  **Configurazione Arduino**:
+    * Collegare i componenti hardware all'Arduino.
+    * Caricare il codice Arduino sull'Arduino.
+2.  **Configurazione Raspberry Pi**:
+    * Installare Python 3.x e le librerie necessarie su entrambi i Raspberry Pi.
+    * Configurare la comunicazione seriale e Bluetooth.
+    * configurare il database.
+    * configurare flask.
+3.  **Esecuzione Applicazione**:
+    * Avviare gli script Python sui Raspberry Pi.
+    * Accedere all'applicazione web tramite browser o smartphone.
+    * 
+## Risorse aggiuntive
+
+* [link del canale per realizzare app grafica da pc e da smartphone](https://www.programmareinpython.it/corsi-e-lezioni-python-dal-nostro-canale-youtube/)
 
 
-link del canale per realizzare app grafica da pc e da smartphone: https://www.programmareinpython.it/corsi-e-lezioni-python-dal-nostro-canale-youtube/
