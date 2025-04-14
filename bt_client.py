@@ -1,26 +1,15 @@
 import bluetooth
 
-server_mac_address = 'D8:3A:DD:ED:86:AE' 
-port = 1  # Stesso numero di porta del server
+server_address = "D8:3A:DD:ED:86:AE"  # Inserisci l'indirizzo MAC del Raspberry server
 
-sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+client_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+client_sock.connect((server_address, 1))
 
-try:
-    print(f"Connessione al server {server_mac_address}...")
-    sock.connect((server_mac_address, port))
-    print("Connesso!")
+print("Connessione avviata al server!")
 
-    while True:
-        message = input("Scrivi un messaggio ('exit' per terminare): ")
-        if message.lower() == "exit":
-            break
-        sock.send(message)
+client_sock.send("Ciao Raspberry!".encode())
 
-except bluetooth.btcommon.BluetoothError as err:
-    print(f"Errore di connessione: {err}")
+client_sock.close()
 
-finally:
-    print("Disconnessione...")
-    sock.close()
 
 

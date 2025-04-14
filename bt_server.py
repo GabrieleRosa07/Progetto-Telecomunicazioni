@@ -1,27 +1,18 @@
 import bluetooth
 
-server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-port = 1  # Standard RFCOMM port
+server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+server_sock.bind(("", bluetooth.PORT_ANY))
+server_sock.listen(1)
 
-try:
-    server_socket.bind(("", port))
-    server_socket.listen(1)
+print("In attesa di connessioni Bluetooth...")
+client_sock, client_info = server_sock.accept()
+print(f"Connessione accettata da {client_info}")
 
-    print("In attesa di connessione Bluetooth su RFCOMM...")
+while True:
+    data = client_sock.recv(1024)
+    if not data:
+        break
+    print(f"Ricevuto: {data.decode()}")
 
-    client_socket, client_address = server_socket.accept()
-    print(f"Connessione stabilita con: {client_address}")
-
-    while True:
-        data = client_socket.recv(1024)
-        if not data:
-            break
-        print(f"Messaggio ricevuto: {data.decode('utf-8')}")
-
-except OSError as e:
-    print(f"Errore: {e}")
-
-finally:
-    print("Chiusura socket...")
-    client_socket.close()
-    server_socket.close()
+client_sock.close()
+server_sock.close()
