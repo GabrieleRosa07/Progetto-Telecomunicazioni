@@ -1,6 +1,6 @@
 import bluetooth
 
-server_mac_address = 'B8:27:EB:62:DD:D0' 
+server_mac_address = 'D8:3A:DD:ED:86:AE' 
 port = 1  # Stesso numero di porta del server
 
 sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
