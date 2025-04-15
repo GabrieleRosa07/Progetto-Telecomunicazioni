@@ -179,8 +179,6 @@ def avvioSistema():
                     client_sock.send(pickle.dumps(saldo))
                 else:
                     print(f"Ricevuto: {line}")
-            else:
-                print(f"Non ricevuto")
     except KeyboardInterrupt:
         print("[SERVER] Interrotto manualmente")
 
