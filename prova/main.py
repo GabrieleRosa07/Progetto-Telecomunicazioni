@@ -123,7 +123,7 @@ def calcolaTotale():
 def connettiArduino():
     try:
         # Inizializzazione della connessione seriale
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
+        ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
         
         # Una volta che Arduino è pronto, inizia a leggere i dati
         while True:
@@ -143,7 +143,7 @@ def avvioSistema():
     setup_db()
     saldo = calcolaTotale()
 
-    ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
     time.sleep(2)
     print("Avvio ATM...")
 
@@ -192,7 +192,7 @@ def avvioSistema():
         print("[SERVER] Connessioni chiuse")
 
 if __name__ == "__main__":
-    ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
     if ser.is_open:
         print("Avvio ATM...")
