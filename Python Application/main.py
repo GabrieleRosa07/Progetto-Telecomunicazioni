@@ -71,17 +71,22 @@ class RegisterScreen(Screen):
         self.add_widget(layout)
 
     def validate_register(self, instance):
-        user = self.username.text
-        psw = self.password.text
-
-        dynamicDatabase.append({user, psw})
-
-        """ if user in database and database[user]["password"] == psw:
-            self.manager.user = database[user]  
-            self.manager.current = "login"
+        user = self.username.text.strip()
+        psw = self.password.text.strip()
+        
+        if not user or not psw:
+            popup = Popup(title="Errore", content=Label(text="Inserisci username e password"), size_hint=(0.6, 0.3))
+            popup.open()
+            return
+            
+        if user in database:
+            popup = Popup(title="Errore", content = Label(text="Utente già esistente"), size_hint=(0.6, 0.3))
+            popup.open()
         else:
-            popup = Popup(title="Errore", content=Label(text="Credenziali errate!"), size_hint=(0.6, 0.3))
-            popup.open() """
+            database[user] = {"nome":user, "password":psw, "saldo":0, "transazioni":[]}
+            popup = Popup(title="Successo", content = Label(text="Registrazione avvenuta con successo"), size_hint=(0.6, 0.3))
+            popup.open()
+            self.manager.current = "login"
 
 class MenuScreen(Screen):
     def __init__(self, **kwargs):
@@ -198,6 +203,10 @@ class VisualizzaScreen(Screen):
         layout.add_widget(back_button) 
 
         self.add_widget(layout)
+        
+    def on_pre_enter(self, *args):
+            user_data = self.manager.user
+            self.balance_label.text = f"saldo: {user_data['saldo']} euro"
 
     def fetchData(self, instance):
         try:
