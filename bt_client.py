@@ -1,36 +1,39 @@
 import bluetooth
-import uuid
 
-service_uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"  # Deve essere lo stesso del server
+# UUID del servizio a cui ci vogliamo connettere
+service_uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
 
-# Scansiona i dispositivi Bluetooth per trovare il server
-nearby_devices = bluetooth.discover_devices(duration=8, lookup_names=True)
+print("Ricerca servizi Bluetooth...")
 
-server_address = None
+# Trova i servizi che espongono questo UUID
+services = bluetooth.find_service(uuid=service_uuid)
 
-print("Dispositivi Bluetooth trovati:")
-for addr, name in nearby_devices:
-    print(f"{addr} - {name}")
-    # Supponiamo che il server sia chiamato "RaspberryPiServer", cambialo in base alle tue esigenze
-    if "RaspberryPiServer" in name:
-        server_address = addr
-        break
-
-if server_address is None:
-    print("Server non trovato. Assicurati che sia visibile.")
+if len(services) == 0:
+    print("Nessun servizio trovato.")
     exit()
 
-print(f"Connessione al server con indirizzo: {server_address}")
+first_match = services[0]
+host = first_match["host"]
+port = first_match["port"]
 
-client_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-client_sock.connect((server_address, 1))
+print(f"Trovato servizio su {host}, porta {port}")
 
-print("Connessione stabilita!")
+sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+sock.connect((host, port))
+print("Connesso al server!")
 
-client_sock.send("Ciao! Questo messaggio usa UUID.".encode())
+try:
+    # Ricevi messaggio dal server
+    data = sock.recv(1024)
+    print("Messaggio ricevuto:", data.decode())
 
-client_sock.close()
+    # Rispondi
+    response = "Ciao server, ricevuto forte e chiaro!"
+    sock.send(response)
+    print("Risposta inviata al server.")
 
+except OSError as e:
+    print("Errore:", e)
 
-
-
+print("Chiusura connessione")
+sock.close()
