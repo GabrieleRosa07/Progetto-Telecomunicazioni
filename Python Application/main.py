@@ -15,6 +15,11 @@ database = {
 
 dynamicDatabase = []
 
+class MyScreenManager(ScreenManager):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.user = None
+
 class LoginScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -38,15 +43,19 @@ class LoginScreen(Screen):
         self.add_widget(layout)
 
     def validate_login(self, instance):
-        user = self.username.text
-        psw = self.password.text
+        user = self.username.text.strip()
+        psw = self.password.text.strip()
 
-        if user in database and database[user]["password"] == psw:
-            self.manager.user = database[user]  
-            self.manager.current = "menu"
-        else:
-            popup = Popup(title="Errore", content=Label(text="Credenziali errate!"), size_hint=(0.6, 0.3))
-            popup.open()
+        # Cerca per nome (case insensitive)
+        for key, data in database.items():
+            if data["nome"].lower() == user.lower() and data["password"] == psw:
+                self.manager.user = data
+                self.manager.current = "menu"
+                return
+    
+        popup = Popup(title="Errore", content=Label(text="Credenziali errate!"), size_hint=(0.6, 0.3))
+        popup.open()
+
 
 class RegisterScreen(Screen):
     def __init__(self, **kwargs):
@@ -139,7 +148,7 @@ class PrelevaScreen(Screen):
                 popup.open()
             else:
                 user_data["saldo"] -= importo
-                user_data["transazioni"].append(f"Prelievo: -{importo}€")
+                user_data["transazioni"].append(f"Prelievo: -{importo}€ | Descrizione: {self.descrizione.text}")
                 popup = Popup(title="Successo", content=Label(text="Prelievo effettuato!"), size_hint=(0.6, 0.3))
                 popup.open()
                 self.manager.current = "menu"
@@ -176,7 +185,7 @@ class DepositaScreen(Screen):
 
             if importo > 0:
                 user_data["saldo"] += importo
-                user_data["transazioni"].append(f"Deposito: +{importo}€")
+                user_data["transazioni"].append(f"Deposito: +{importo}€ | Descrizione: {self.descrizione.text}")
                 popup = Popup(title="Successo", content=Label(text="Deposito effettuato!"), size_hint=(0.6, 0.3))
                 popup.open()
                 self.manager.current = "menu"
@@ -189,53 +198,52 @@ class VisualizzaScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        layout = BoxLayout(orientation="vertical", padding=20, spacing=10)
+        self.layout = BoxLayout(orientation="vertical", padding=20, spacing=10)
 
-        layout.add_widget(Label(text="Visualizza conto", font_size=24))
+        self.layout.add_widget(Label(text="Visualizza conto", font_size=24))
 
         self.balance_label = Label(text="Saldo: 0€", font_size=20)
-        layout.add_widget(self.balance_label)
+        self.layout.add_widget(self.balance_label)
 
-        """ confirm_button = Button(text="Conferma", on_press=self.deposita)
-        layout.add_widget(confirm_button)"""
+        # ScrollView per le transazioni
+        self.scroll = ScrollView(size_hint=(1, 1))
+        self.transazioni_box = BoxLayout(orientation="vertical", size_hint_y=None, spacing=10)
+        self.transazioni_box.bind(minimum_height=self.transazioni_box.setter("height"))
+        self.scroll.add_widget(self.transazioni_box)
+        self.layout.add_widget(self.scroll)
 
-        back_button = Button(text="Indietro", on_press=lambda x: setattr(self.manager, "current", "menu"))
-        layout.add_widget(back_button) 
+        back_button = Button(text="Indietro", size_hint_y=None, height=50, on_press=lambda x: setattr(self.manager, "current", "menu"))
+        self.layout.add_widget(back_button)
 
-        self.add_widget(layout)
-        
+        self.add_widget(self.layout)
+
     def on_pre_enter(self, *args):
-            user_data = self.manager.user
-            self.balance_label.text = f"saldo: {user_data['saldo']} euro"
+        user_data = self.manager.user
+        self.balance_label.text = f"Saldo: {user_data['saldo']}€"
 
-    def fetchData(self, instance):
-        try:
-            importo = float(self.importo.text)
-            user_data = self.manager.user
+        # Pulisce vecchie transazioni
+        self.transazioni_box.clear_widgets()
 
-            if importo > 0:
-                user_data["saldo"] += importo
-                user_data["transazioni"].append(f"Deposito: +{importo}€")
-                popup = Popup(title="Successo", content=Label(text="Deposito effettuato!"), size_hint=(0.6, 0.3))
-                popup.open()
-                self.manager.current = "menu"
-        except ValueError:
-            popup = Popup(title="Errore", content=Label(text="Inserisci un importo valido!"), size_hint=(0.6, 0.3))
-            popup.open()
+        # Aggiunge le transazioni attuali
+        if user_data["transazioni"]:
+            for transazione in user_data["transazioni"]:
+                self.transazioni_box.add_widget(Label(text=transazione, size_hint_y=None, height=30))
+        else:
+            self.transazioni_box.add_widget(Label(text="Nessuna transazione effettuata.", size_hint_y=None, height=30))
+
         
 
 
 # Screen Manager
 class MyApp(App):
     def build(self):
-        sm = ScreenManager()
+        sm = MyScreenManager()
         sm.add_widget(LoginScreen(name="login"))
         sm.add_widget(RegisterScreen(name="register"))
         sm.add_widget(MenuScreen(name="menu"))
         sm.add_widget(PrelevaScreen(name="preleva"))
         sm.add_widget(DepositaScreen(name="deposita"))
         sm.add_widget(VisualizzaScreen(name="visualizza"))
-        sm.user = None  # Store logged-in user
         return sm
 
 
