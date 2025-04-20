@@ -165,7 +165,6 @@ def avvioSistema():
 
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
     time.sleep(2)
-    print("Avvio ATM...")
 
     server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     server_sock.bind(("", bluetooth.PORT_ANY))
@@ -199,6 +198,16 @@ def avvioSistema():
                     client_sock.send(pickle.dumps(saldo))
                 else:
                     print(f"Ricevuto: {line}")
+
+            data = client_sock.recv(1024)
+            if data:
+                stringa = data.decode('utf-8')
+                print(f"[SERVER] Dato ricevuto: {stringa}")
+                
+            else:
+                print("[SERVER] Connessione chiusa dal client.")
+                break
+            
     except KeyboardInterrupt:
         print("[SERVER] Interrotto manualmente")
 
