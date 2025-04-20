@@ -88,26 +88,35 @@ def conetti():
         print("[SERVER] In attesa di connessioni Bluetooth...")
 
         client_sock, client_info = server_sock.accept()
-        print(f"[SERVER] Connesso a: {client_info}")
+        if client_sock():
+            print(f"[SERVER] Connesso a: {client_info}")
+        else:
+            print("[SERVER] Connessione fallita")
 
         while True:
-            data = b""
-            while True:
-                chunk = client_sock.recv(1024)
-                data += chunk
-                if len(chunk) < 1024:
-                    break  # Se la dimensione del chunk è minore di 1024, significa che il dato è completo
+            # data = b""
+            # while True:
+            #     chunk = client_sock.recv(1024)
+            #     data += chunk
+            #     if len(chunk) < 1024:
+            #         break  # Se la dimensione del chunk è minore di 1024, significa che il dato è completo
+
+            # if data:
+            #     print(f"[SERVER] Dati ricevuti: {data}")
+            #     try:
+            #         transaction = pickle.loads(data)
+            #         print(f"[SERVER] Transazione ricevuta: {transaction}")
+            #     except Exception as e:
+            #         print(f"[SERVER] Errore nel deserializzare i dati: {e}")
+            #         break
+            # else:
+            #     break
+            data = client_sock.recv(1024)
             if data:
-                print(f"[SERVER] Dati ricevuti: {data}")
-                try:
-                    transaction = pickle.loads(data)
-                    print(f"[SERVER] Transazione ricevuta: {transaction}")
-                except Exception as e:
-                    print(f"[SERVER] Errore nel deserializzare i dati: {e}")
-                    break
+                print(f"[SERVER] Dati ricevuti: {data.decode('utf-8')}")
             else:
                 break
-            
+
     except Exception as e:
         print(f"[SERVER] Errore: {e}")
 
