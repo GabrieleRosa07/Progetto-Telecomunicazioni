@@ -111,11 +111,11 @@ def avvioSistema():
     except Exception as e:
         print(f"[SERVER] Errore: {e}")
     
-    finally:
-        client_sock.close()
-        server_sock.close()
-        ser.close()
-        print("[SERVER] Connessioni chiuse")
+    # finally:
+        # client_sock.close()
+        # server_sock.close()
+        # ser.close()
+        # print("[SERVER] Connessioni chiuse")
 
 if __name__ == "__main__":
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
