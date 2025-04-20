@@ -58,9 +58,16 @@ def avvioSistema():
     setup_db()
     saldo = calcolaTotale()
 
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
-    time.sleep(2)
+    # Inizializza la seriale con Arduino
+    try:
+        ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+        time.sleep(2)  # Attendi che Arduino si resetti
+        print("[SERVER] Porta seriale con Arduino aperta.")
+    except Exception as e:
+        print(f"[SERVER] Errore apertura seriale: {e}")
+        return
 
+    # Imposta il server Bluetooth
     server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     server_sock.bind(("", bluetooth.PORT_ANY))
     server_sock.listen(1)
@@ -75,47 +82,55 @@ def avvioSistema():
         profiles=[bluetooth.SERIAL_PORT_PROFILE]
     )
 
-    print("[SERVER] In attesa di connessioni di Bluetooth...")
+    print(f"[SERVER] In attesa di connessioni Bluetooth sulla porta {port}...")
     client_sock, client_info = server_sock.accept()
+    client_sock.settimeout(0.5)  # Timeout per evitare blocco su recv
     print(f"[SERVER] Connesso a: {client_info}")
 
     try:
         while True:
-            line = ser.readline().decode('utf-8', errors='ignore').strip()
-            if line:
-                if "entrata" in line or "uscita" in line:
-                    aggiungi_transazione(line)
-                    print(f"[SERVER] Transazione salvata: {line}")
+            # Leggi dalla seriale
+            try:
+                line = ser.readline().decode('utf-8', errors='ignore').strip()
+                if line:
+                    if "entrata" in line or "uscita" in line:
+                        aggiungi_transazione(line)
+                        print(f"[SERVER][SERIALE] Transazione salvata: {line}")
+                        saldo = calcolaTotale()
+                        print(f"[SERVER] Nuovo saldo: {saldo} €")
+                        client_sock.send(pickle.dumps(saldo))
+                    else:
+                        print(f"[SERVER][SERIALE] Ignorato: {line}")
+            except Exception as e:
+                print(f"[SERVER][SERIALE] Errore: {e}")
 
-                    saldo = calcolaTotale()
-                    print(f"[SERVER] Nuovo saldo: {saldo} €")
-
-                    client_sock.send(pickle.dumps(saldo))
-                else:
-                    print(f"Ricevuto: {line}")
-
-            data = client_sock.recv(1024)
-            stringa = data.decode('utf-8').strip()
-            if stringa:
-                if "entrata" in stringa or "uscita" in stringa:
-                    aggiungi_transazione(stringa)
-                    print(f"[SERVER] Dato ricevuto: {stringa}")
-
-                    saldo = calcolaTotale()
-                    client_sock.send(pickle.dumps(saldo))
-                
+            # Leggi da Bluetooth
+            try:
+                data = client_sock.recv(1024)
+                if data:
+                    stringa = data.decode('utf-8', errors='ignore').strip()
+                    if "entrata" in stringa or "uscita" in stringa:
+                        aggiungi_transazione(stringa)
+                        print(f"[SERVER][BLUETOOTH] Transazione ricevuta: {stringa}")
+                        saldo = calcolaTotale()
+                        print(f"[SERVER] Nuovo saldo: {saldo} €")
+                        client_sock.send(pickle.dumps(saldo))
+                    else:
+                        print(f"[SERVER][BLUETOOTH] Ignorato: {stringa}")
+            except bluetooth.btcommon.BluetoothError:
+                pass  # Nessun dato ricevuto, continua il loop
+            except Exception as e:
+                print(f"[SERVER][BLUETOOTH] Errore: {e}")
 
     except KeyboardInterrupt:
-        print("[SERVER] Interrotto manualmente")
+        print("\n[SERVER] Interrotto manualmente")
 
-    except Exception as e:
-        print(f"[SERVER] Errore: {e}")
-    
-    # finally:
-        # client_sock.close()
-        # server_sock.close()
-        # ser.close()
-        # print("[SERVER] Connessioni chiuse")
+    finally:
+        client_sock.close()
+        server_sock.close()
+        ser.close()
+        print("[SERVER] Connessioni chiuse")
+
 
 if __name__ == "__main__":
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
