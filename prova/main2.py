@@ -1,17 +1,14 @@
-import sqlite3
 import bluetooth
+import pickle
+import sqlite3
 import time
 import serial
-import pickle
 
-DB_PATH = "finanza.db"
-
-# ----------------------------- DATABASE -----------------------------
-
+# Funzione per inizializzare il database
 def setup_db():
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("""
+    connection = sqlite3.connect("finanza.db")
+    cursor = connection.cursor()
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS transazioni (
             tipo TEXT,
             data TEXT,
@@ -19,59 +16,92 @@ def setup_db():
             descrizione TEXT
         )
     """)
-    conn.commit()
-    conn.close()
+    connection.commit()
+    connection.close()
 
+# Funzione per aggiungere una transazione al database
 def aggiungi_transazione(t):
-    parole = t.split()
-    if len(parole) < 4:
-        print(f"[SERVER] Formato transazione non valido: {t}")
-        return
+    connection = sqlite3.connect("finanza.db")
+    cursor = connection.cursor()
 
+    parole = t.split()
     tipo = parole[0]
     data = parole[1]
-    try:
-        importo = float(parole[2])
-    except ValueError:
-        print(f"[SERVER] Importo non valido: {parole[2]}")
-        return
-
+    importo = float(parole[2])
     descrizione = ' '.join(parole[3:])
 
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("INSERT INTO transazioni (tipo, data, importo, descrizione) VALUES (?, ?, ?, ?)",
-                (tipo, data, importo, descrizione))
-    conn.commit()
-    conn.close()
-    print(f"[SERVER] Transazione salvata: {t}")
+    cursor.execute("INSERT INTO transazioni (tipo, data, importo, descrizione) VALUES (?, ?, ?, ?)", (tipo, data, importo, descrizione))
 
-def calcola_totale():
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT 
-            SUM(CASE WHEN tipo = 'entrata' THEN importo ELSE 0 END) -
-            SUM(CASE WHEN tipo = 'uscita' THEN importo ELSE 0 END)
-        FROM transazioni
-    """)
-    result = cur.fetchone()
-    conn.close()
-    saldo = result[0] if result[0] is not None else 0.0
-    return round(saldo, 2)
+    connection.commit()
+    connection.close()
 
-# -------------------------- BLUETOOTH SERVER --------------------------
-
-def avvia_bluetooth_server(ser):
+# Funzione per stampare tutte le transazioni nel database
+def stampa():
     setup_db()
 
+    print("Transazioni attuali:\n")
+    connection = sqlite3.connect("finanza.db")
+    cursor = connection.cursor()
+    stampa = cursor.execute("SELECT * FROM transazioni")
+    
+    for row in stampa:
+        print(row)
+
+# Funzione per calcolare il saldo totale
+def calcolaTotale():
+    connection = sqlite3.connect("finanza.db")
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT 
+            SUM(CASE WHEN tipo = 'entrata' THEN importo ELSE 0 END) - 
+            SUM(CASE WHEN tipo = 'uscita' THEN importo ELSE 0 END) AS bilancio
+        FROM transazioni;
+    """)
+
+    bilancio = cursor.fetchone()[0]
+    connection.close()
+
+    return str(bilancio)
+
+# Funzione per connettere e gestire la comunicazione con Arduino
+def connetti_arduino():
+    try:
+        # Inizializzazione della connessione seriale con Arduino
+        ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+        
+        # Leggere i dati da Arduino
+        while True:
+            line = ser.readline().decode('utf-8', errors='ignore').strip()
+            if line:
+                if "entrata" in line or "uscita" in line:
+                    aggiungi_transazione(line)  # Aggiungi la transazione se trovata
+                    print(f"[SERVER] Transazione salvata: {line}")
+                else:
+                    print(f"[SERVER] Ignorato: {line}")  # Stampa qualunque altro messaggio
+
+    except KeyboardInterrupt:
+        print("Chiusura della connessione con Arduino")
+    finally:
+        ser.close()  # Chiude la connessione seriale
+
+# Funzione per avviare il server Bluetooth e gestire la connessione
+def avvio_sistema():
+    setup_db()
+    saldo = calcolaTotale()
+    
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
+    time.sleep(2)
+    
+    print("[SERVER] Avvio ATM...")
+    
     server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     server_sock.bind(("", bluetooth.PORT_ANY))
     server_sock.listen(1)
-
     port = server_sock.getsockname()[1]
+    
     uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
-
+    
     bluetooth.advertise_service(
         server_sock,
         "TransactionServer",
@@ -80,69 +110,48 @@ def avvia_bluetooth_server(ser):
         profiles=[bluetooth.SERIAL_PORT_PROFILE]
     )
 
-    print(f"[SERVER] In ascolto sulla porta {port}")
     print("[SERVER] In attesa di connessioni Bluetooth...")
-
+    client_sock, client_info = server_sock.accept()
+    print(f"[SERVER] Connesso a: {client_info}")
+    
     try:
-        client_sock, client_info = server_sock.accept()
-        print(f"[SERVER] Connesso a: {client_info}")
-
         while True:
-            # Leggi da Arduino
-            line = ser.readline().decode('utf-8', errors='ignore').strip()
-            if line:
-                print(f"[SERVER] Dato ricevuto da Arduino: {line}")
-                if "entrata" in line or "uscita" in line:
-                    aggiungi_transazione(line)
-                    saldo = calcola_totale()
-                    print(f"[SERVER] Saldo aggiornato: {saldo} €")
-                    client_sock.send(pickle.dumps(saldo))
-                else:
-                    print(f"[SERVER] Ignorato: {line}")
+            # Leggere i dati inviati dal client
+            data = client_sock.recv(1024)
+            if data:
+                print(f"[SERVER] Dato ricevuto: {data.decode('utf-8')}")
+                
+                try:
+                    # Deserializzare i dati ricevuti
+                    transaction = pickle.loads(data)
+                    print(f"[SERVER] Transazione ricevuta: {transaction}")
+                    
+                    # Aggiungere la transazione al database
+                    aggiungi_transazione(transaction)
+                    print(f"[SERVER] Transazione salvata: {transaction}")
 
-            # Leggi eventuali dati dal client Bluetooth
-            client_sock.settimeout(0.01)
-            try:
-                data = client_sock.recv(1024)
-                if data:
-                    messaggio = pickle.loads(data)
-                    print(f"[SERVER] Ricevuto da client: {messaggio}")
-                    aggiungi_transazione(messaggio)
-                    saldo = calcola_totale()
-                    client_sock.send(pickle.dumps(saldo))
-            except bluetooth.BluetoothError:
-                pass
+                    # Calcolare il saldo aggiornato
+                    saldo = calcolaTotale()
+                    print(f"[SERVER] Nuovo saldo: {saldo} €")
 
+                    # Inviare il saldo al client
+                    client_sock.send(pickle.dumps(saldo))
+
+                except pickle.UnpicklingError:
+                    print("[SERVER] Errore durante la deserializzazione dei dati")
+
+            else:
+                print("[SERVER] Connessione chiusa dal client.")
+                break
     except Exception as e:
         print(f"[SERVER] Errore: {e}")
-
+    
     finally:
         client_sock.close()
         server_sock.close()
         ser.close()
-        print("[SERVER] Connessioni chiuse.")
+        print("[SERVER] Connessioni chiuse")
 
-# -------------------------- AVVIO SISTEMA --------------------------
-
-def avvio_sistema():
-    print("[SERVER] Avvio ATM...")
-    try:
-        ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
-        time.sleep(2)
-    except serial.SerialException as e:
-        print(f"[SERVER] Errore apertura porta seriale: {e}")
-        return
-
-    # Invia inizialmente il saldo ad Arduino
-    saldo = str(calcola_totale())
-    for _ in range(3):
-        ser.write((saldo + '\n').encode('utf-8'))
-        time.sleep(0.5)
-
-    print("[SERVER] Avvicina Tessera o invia dati Bluetooth")
-    avvia_bluetooth_server(ser)
-
-# -------------------------- MAIN --------------------------
-
+# Funzione principale per avviare il sistema
 if __name__ == "__main__":
     avvio_sistema()

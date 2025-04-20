@@ -11,22 +11,25 @@ def send_transaction():
         client_sock.connect((server_address, 1))
         print(f"[CLIENT] Connesso al server {server_address}")
 
-        # transaction = "Deposito 2024-03-31 150.75 Versamento stipendio"
-        # serialized = pickle.dumps(transaction)
+        transaction = "entrata 2024-04-20 200.00 Pagamento freelance"
+        serialized = pickle.dumps(transaction)
 
-        # print(f"[CLIENT] Transazione serializzata: {serialized}")
-        # client_sock.send(serialized)
-        # print(f"[CLIENT] Transazione inviata: {transaction}")
+        # Invia prima la lunghezza (4 byte), poi i dati
+        client_sock.send(struct.pack(">I", len(serialized)))
+        client_sock.send(serialized)
 
-        # data = client_sock.recv(1024)
-        # saldo = pickle.loads(data)
-        # print(f"[CLIENT] Saldo aggiornato ricevuto: {saldo} €")
+        print(f"[CLIENT] Transazione inviata: {transaction}")
 
-        message = "Ciao Server"
-        print(f"[CLIENT] Inviando messaggio: {message}")
-        client_sock.send(message.encode("utf-8"))  # Invia una stringa semplice
-        print(f"[CLIENT] Messaggio inviato: {message}")
+        # Ricevi la risposta (lunghezza + dati)
+        raw_len = client_sock.recv(4)
+        if not raw_len:
+            raise Exception("Nessuna risposta dal server.")
+        data_len = struct.unpack(">I", raw_len)[0]
+        data = client_sock.recv(data_len)
 
+        saldo = pickle.loads(data)
+        print(f"[CLIENT] Saldo aggiornato ricevuto: {saldo} €")
+    
     except Exception as e:
         print(f"[CLIENT] Errore: {e}")
 
