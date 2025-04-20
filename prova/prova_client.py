@@ -10,6 +10,7 @@ def send_transaction():
         client_sock.connect((server_address, 1))
         print(f"[CLIENT] Connesso al server {server_address}")
 
+        sleep(500)
         transaction = "Deposito 2024-03-31 150.75 Versamento stipendio"
         serialized = pickle.dumps(transaction)
         client_sock.send(serialized)
