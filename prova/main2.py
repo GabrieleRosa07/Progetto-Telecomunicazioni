@@ -119,26 +119,27 @@ def avvio_sistema():
             # Leggere i dati inviati dal client
             data = client_sock.recv(1024)
             if data:
-                print(f"[SERVER] Dato ricevuto: {data.decode('utf-8')}")
+                stringa = data.decode('utf-8')
+                print(f"[SERVER] Dato ricevuto: {stringa}")
                 
-                try:
-                    # Deserializzare i dati ricevuti
-                    transaction = pickle.loads(data)
-                    print(f"[SERVER] Transazione ricevuta: {transaction}")
+                # try:
+                #     # Deserializzare i dati ricevuti
+                #     transaction = pickle.loads(data)
+                #     print(f"[SERVER] Transazione ricevuta: {transaction}")
                     
-                    # Aggiungere la transazione al database
-                    aggiungi_transazione(transaction)
-                    print(f"[SERVER] Transazione salvata: {transaction}")
+                #     # Aggiungere la transazione al database
+                #     aggiungi_transazione(transaction)
+                #     print(f"[SERVER] Transazione salvata: {transaction}")
 
-                    # Calcolare il saldo aggiornato
-                    saldo = calcolaTotale()
-                    print(f"[SERVER] Nuovo saldo: {saldo} €")
+                #     # Calcolare il saldo aggiornato
+                #     saldo = calcolaTotale()
+                #     print(f"[SERVER] Nuovo saldo: {saldo} €")
 
-                    # Inviare il saldo al client
-                    client_sock.send(pickle.dumps(saldo))
+                #     # Inviare il saldo al client
+                #     client_sock.send(pickle.dumps(saldo))
 
-                except pickle.UnpicklingError:
-                    print("[SERVER] Errore durante la deserializzazione dei dati")
+                # except pickle.UnpicklingError:
+                #     print("[SERVER] Errore durante la deserializzazione dei dati")
 
             else:
                 print("[SERVER] Connessione chiusa dal client.")
