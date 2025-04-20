@@ -96,7 +96,6 @@ def conetti():
                 break
             print(data)
             transaction = pickle.loads(data)
-            print(f"[SERVER] Errore: {e}")
 
     except Exception as e:
         print(f"[SERVER] Errore: {e}")
