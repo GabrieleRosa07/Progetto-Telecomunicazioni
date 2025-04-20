@@ -91,12 +91,23 @@ def conetti():
         print(f"[SERVER] Connesso a: {client_info}")
 
         while True:
-            data = client_sock.recv(1024)
-            if not data:
+            data = b""
+            while True:
+                chunk = client_sock.recv(1024)
+                data += chunk
+                if len(chunk) < 1024:
+                    break  # Se la dimensione del chunk è minore di 1024, significa che il dato è completo
+            if data:
+                print(f"[SERVER] Dati ricevuti: {data}")
+                try:
+                    transaction = pickle.loads(data)
+                    print(f"[SERVER] Transazione ricevuta: {transaction}")
+                except Exception as e:
+                    print(f"[SERVER] Errore nel deserializzare i dati: {e}")
+                    break
+            else:
                 break
-            print(data)
-            transaction = pickle.loads(data)
-
+            
     except Exception as e:
         print(f"[SERVER] Errore: {e}")
 

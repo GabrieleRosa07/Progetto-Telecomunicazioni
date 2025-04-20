@@ -13,7 +13,8 @@ def send_transaction():
 
         transaction = "Deposito 2024-03-31 150.75 Versamento stipendio"
         serialized = pickle.dumps(transaction)
-        
+
+        print(f"[CLIENT] Transazione serializzata: {serialized}")
         client_sock.send(serialized)
         print(f"[CLIENT] Transazione inviata: {transaction}")
 
