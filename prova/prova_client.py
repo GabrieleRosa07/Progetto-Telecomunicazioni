@@ -24,7 +24,7 @@ def send_transaction():
         print(f"[CLIENT] Errore: {e}")
 
     finally:
-        client_sock.close()
+        #client_sock.close()
         print("[CLIENT] Connessione chiusa")
 
 if __name__ == "__main__":
