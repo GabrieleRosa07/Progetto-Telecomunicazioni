@@ -104,9 +104,6 @@ def avvioSistema():
                     saldo = calcolaTotale()
                     client_sock.send(pickle.dumps(saldo))
                 
-                else:
-                    print("[SERVER] Connessione chiusa dal client.")
-                    break
 
     except KeyboardInterrupt:
         print("[SERVER] Interrotto manualmente")
