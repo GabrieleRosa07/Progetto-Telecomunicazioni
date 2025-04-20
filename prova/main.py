@@ -94,6 +94,7 @@ def conetti():
             data = client_sock.recv(1024)
             if not data:
                 break
+            print(data)
             transaction = pickle.loads(data)
             print(f"[SERVER] Errore: {e}")
 
