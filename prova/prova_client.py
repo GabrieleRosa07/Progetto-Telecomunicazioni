@@ -10,7 +10,7 @@ def send_transaction():
         client_sock.connect((server_address, 1))
         print(f"[CLIENT] Connesso al server {server_address}")
 
-        transaction = "Deposito 2024-03-31 150.75 Versamento stipendio"
+        transaction = "entrata 2024-03-31 150.75 Versamento stipendio"
         serialized = struct.pack('!50s', transaction.encode('utf-8'))  # Esempio di come usare struct
 
         client_sock.send(serialized)
