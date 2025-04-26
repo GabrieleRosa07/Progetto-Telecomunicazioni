@@ -6,14 +6,111 @@ from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
+from kivy.core.window import Window
+from kivy.clock import Clock
+from kivy.graphics import Fbo, ClearColor, ClearBuffers, Scale, Translate
+from kivy.core.image import Image as CoreImage
+from kivy.uix.image import Image
+import bluetooth
+import time
+import threading
+from flask import Flask, Response, render_template_string
+import io
+import time
+import pyautogui
+import subprocess
+import os
+from os import path
 
+def crea_appFlask():
+    app = Flask(__name__)
+
+    @app.route('/')
+    def index():
+        return render_template_string('''
+            <!DOCTYPE html>
+            <html lang="it">
+            <head>
+                <meta charset="UTF-8">
+                <title>Interfaccia Kivy</title>
+                <style>
+                    body { margin: 0; background: #000; }
+                    img { width: 100vw; height: auto; display: block; }
+                </style>
+            </head>
+            <body>
+                <img src="/image" alt="Kivy Stream">
+            </body>
+            </html>
+        ''')
+
+    @app.route('/image')
+    def image():
+        def generate():
+            while True:
+                try:
+                    frame = current_image.getvalue()
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/png\r\n\r\n' + frame + b'\r\n')
+                except Exception:
+                    pass
+                time.sleep(0.5)
+        return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+    return app
+
+current_image = io.BytesIO()
+
+def cattura_via_fbo(dt):
+    # Crea Fbo della dimensione della finestra
+    fbo = Fbo(size=Window.size)
+    with fbo:
+        ClearColor(0, 0, 0, 0)
+        ClearBuffers()
+        Scale(1, -1, 1)
+        Translate(0, -Window.height, 0)
+        # Disegna il canvas corrente nel FBO
+        Window.canvas.ask_update()
+        fbo.add(Window.canvas)
+    fbo.draw()
+    # Estrai texture e salva in buffer PNG
+    img = CoreImage(fbo.texture)
+    buf = io.BytesIO()
+    img.save(buf, fmt='png')
+    buf.seek(0)
+    global current_image
+    current_image = buf
 
 database = {
     "user1": {"nome": "Andrea", "password": "pass1", "saldo": 1000, "transazioni": []},
     "user2": {"nome": "Marco", "password": "pass2", "saldo": 500, "transazioni": []},
 }
+bt_socket = None
 
-dynamicDatabase = []
+def connetti_server():
+    global bt_socket
+    
+    server_address = "B8:27:EB:62:DD:D0"
+    port = 1
+
+    try:
+        bt_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+        bt_socket.connect((server_address, port))
+        print("Connessione riuscita")
+
+        saldo_iniziale = bt_socket.recv(1024).decode()
+        print("saldo ricevuto:", saldo_iniziale)
+
+        database["client"]={
+            "nome": "utente",
+            "password":"1234",
+            "saldo": float(saldo_iniziale),
+            "transazioni":[],
+        }
+    except Exception as e:
+        print(f"Errore nella connessione: {e}")
+
+
 
 class MyScreenManager(ScreenManager):
     def __init__(self, **kwargs):
@@ -141,6 +238,7 @@ class PrelevaScreen(Screen):
     def preleva(self, instance):
         try:
             importo = float(self.importo.text)
+            descrizione = self.descrizione.text
             user_data = self.manager.user
 
             if importo > user_data["saldo"] or self.descrizione.text == "":
@@ -148,7 +246,14 @@ class PrelevaScreen(Screen):
                 popup.open()
             else:
                 user_data["saldo"] -= importo
-                user_data["transazioni"].append(f"Prelievo: -{importo}€ | Descrizione: {self.descrizione.text}")
+                transazione = f"uscita 2024-03-31 {importo} {descrizione}"
+                user_data["transazioni"].append(transazione)
+                if bt_socket:
+                    try:
+                        bt_socket.send(transazione.encode('utf-8')) 
+                    except:
+                        print("Errore nell'invio transazione")
+
                 popup = Popup(title="Successo", content=Label(text="Prelievo effettuato!"), size_hint=(0.6, 0.3))
                 popup.open()
                 self.manager.current = "menu"
@@ -181,11 +286,19 @@ class DepositaScreen(Screen):
     def deposita(self, instance):
         try:
             importo = float(self.importo.text)
+            descrizione = self.descrizione.text
             user_data = self.manager.user
 
             if importo > 0:
                 user_data["saldo"] += importo
-                user_data["transazioni"].append(f"Deposito: +{importo}€ | Descrizione: {self.descrizione.text}")
+                transazione = f"entrata 2024-03-31 {importo} {descrizione}"
+                user_data["transazioni"].append(transazione)
+                if bt_socket:
+                    try:
+                        bt_socket.send(transazione.encode('utf-8')) 
+                    except:
+                        print("Errore nell'invio transazione")
+
                 popup = Popup(title="Successo", content=Label(text="Deposito effettuato!"), size_hint=(0.6, 0.3))
                 popup.open()
                 self.manager.current = "menu"
@@ -237,6 +350,11 @@ class VisualizzaScreen(Screen):
 # Screen Manager
 class MyApp(App):
     def build(self):
+        Clock.schedule_interval(cattura_via_fbo, 1.0/2)
+
+        threading.Thread(target=lambda: crea_appFlask().run(host='0.0.0.0',port=5000),daemon=True).start()
+        threading.Thread(target=connetti_server, daemon=True).start()
+
         sm = MyScreenManager()
         sm.add_widget(LoginScreen(name="login"))
         sm.add_widget(RegisterScreen(name="register"))
@@ -248,4 +366,5 @@ class MyApp(App):
 
 
 if __name__ == "__main__":
+
     MyApp().run()
