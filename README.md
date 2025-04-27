@@ -14,7 +14,7 @@ Il sistema è composto da:
     * **Raspberry Pi 1**:
         * Raccoglie i dati dall'Arduino tramite comunicazione seriale.
         * Invia i dati al Raspberry Pi 2 tramite connessione Bluetooth.
-        * Gestisce un database locale e un file CSV per la registrazione delle transazioni.
+        * Gestisce un database locale per la registrazione delle transazioni.
         * Invia aggiornamenti di stato all'Arduino e al Raspberry Pi 2.
     * **Raspberry Pi 2**:
         * Ospita un server Flask che esegue un'applicazione web Python.
