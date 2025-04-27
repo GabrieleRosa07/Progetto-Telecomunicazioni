@@ -42,7 +42,6 @@ def snapshot_png():
     with snapshot_lock:
         data = latest_snapshot
     if data is None:
-        # return a black placeholder
         img = Image.new('RGB', (1024, 768), 'black')
         buf = io.BytesIO()
         img.save(buf, 'PNG')
@@ -51,8 +50,8 @@ def snapshot_png():
     return send_file(io.BytesIO(data), mimetype='image/png')
 
 def run_flask():
-    # Accessible on port 5000
     app.run(host='0.0.0.0', port=5000, threaded=True)
+
 
 def setup_db():
     con = sqlite3.connect(DB_PATH)
@@ -69,6 +68,7 @@ def setup_db():
     con.commit()
     con.close()
 
+
 def aggiungi_transazione(t):
     parts = t.split()
     tipo, data_str, importo = parts[0], parts[1], float(parts[2])
@@ -81,6 +81,7 @@ def aggiungi_transazione(t):
     )
     con.commit()
     con.close()
+
 
 def calcola_totale():
     con = sqlite3.connect(DB_PATH)
@@ -97,9 +98,9 @@ def calcola_totale():
     con.close()
     return saldo
 
+
 class SerialMonitorGUI:
     def __init__(self):
-        # Initialize the Tkinter GUI
         self.root = Tk()
         self.root.title("Server Serial Monitor")
 
@@ -115,7 +116,6 @@ class SerialMonitorGUI:
         self.capture_snapshot()
 
     def capture_snapshot(self):
-        # Capture current text widget to a PNG via virtual display
         ps = self.text.postscript(colormode='color')
         img = Image.open(io.BytesIO(ps.encode('utf-8')))
         buf = io.BytesIO()
@@ -132,14 +132,12 @@ def avvio_sistema(gui: SerialMonitorGUI):
     setup_db()
     saldo = calcola_totale()
 
-    # Open serial to Arduino
     try:
         ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
         time.sleep(2)
     except Exception:
         ser = None
 
-    # Start Bluetooth server
     server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     server_sock.bind(("", 1))
     server_sock.listen(1)
@@ -153,11 +151,9 @@ def avvio_sistema(gui: SerialMonitorGUI):
     client_sock, addr = server_sock.accept()
     client_sock.settimeout(0.5)
 
-    # Send initial balance
     client_sock.send(f"{saldo}".encode())
     time.sleep(0.5)
 
-    # Send historical transactions
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
     cur.execute("SELECT tipo, data, importo, descrizione FROM transazioni")
@@ -170,7 +166,6 @@ def avvio_sistema(gui: SerialMonitorGUI):
         while True:
             saldo = calcola_totale()
 
-            # Serial write
             if ser:
                 try:
                     ser.write((str(saldo) + '\n').encode())
@@ -188,7 +183,6 @@ def avvio_sistema(gui: SerialMonitorGUI):
                 except Exception:
                     pass
 
-            # Bluetooth receive
             try:
                 data = client_sock.recv(1024)
                 if data:
@@ -202,7 +196,6 @@ def avvio_sistema(gui: SerialMonitorGUI):
             except Exception:
                 pass
 
-            # Always send updated balance
             try:
                 client_sock.send(f"{saldo}".encode())
             except Exception:
@@ -220,11 +213,9 @@ def avvio_sistema(gui: SerialMonitorGUI):
             ser.close()
 
 if __name__ == '__main__':
-    # Launch Flask and Serial GUI threads
     gui = SerialMonitorGUI()
     threading.Thread(target=run_flask, daemon=True).start()
     threading.Thread(target=avvio_sistema, args=(gui,), daemon=True).start()
     gui.mainloop()
-
     # Stop the virtual display on exit
 display.stop()
