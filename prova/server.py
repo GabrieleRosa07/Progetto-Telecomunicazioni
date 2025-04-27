@@ -54,9 +54,7 @@ def avvioSistema():
     try:
         ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
         time.sleep(2)
-        print("[SERVER] Serial ready")
     except Exception as e:
-        print(f"[SERVER] Errore seriale: {e}")
         return
 
     # Avvia server Bluetooth su porta 1
@@ -69,10 +67,8 @@ def avvioSistema():
         service_classes=[bluetooth.SERIAL_PORT_CLASS],
         profiles=[bluetooth.SERIAL_PORT_PROFILE]
     )
-    print("[SERVER] In attesa Bluetooth su RFCOMM 1...")
     client_sock, addr = server_sock.accept()
     client_sock.settimeout(0.5)
-    print(f"[SERVER] Connesso a {addr}")
 
     # Invia subito saldo iniziale come stringa
     client_sock.send(f"{saldo}".encode('utf-8'))
@@ -90,7 +86,6 @@ def avvioSistema():
     # Unisci tutte le transazioni separandole con il carattere speciale ###
     pacchetto = "###".join(transazioni)
     client_sock.send(pacchetto.encode('utf-8'))
-    print(f"[SERVER] Inviato saldo iniziale: {saldo}")
 
     try:
         while True:
@@ -99,7 +94,7 @@ def avvioSistema():
             try:
                 ser.write((str(saldo) + '\n').encode('utf-8'))
             except Exception as e:
-                print(f"Errore scrittura seriale: {e}")
+                pass
 
             try:
                 line = ser.readline().decode(errors='ignore').strip()
@@ -110,7 +105,7 @@ def avvioSistema():
                         saldo = calcolaTotale()
                         client_sock.send(f"{saldo}".encode('utf-8'))
             except Exception as e:
-                print(f"[SERIALE] Errore: {e}")
+                pass
 
             # 2) Bluetooth
             try:
@@ -129,18 +124,17 @@ def avvioSistema():
             try:
                 client_sock.send(str(saldo).encode('utf-8'))
             except Exception as e:
-                print("Terminato manualmente")
+                pass
 
             time.sleep(0.5)
 
     except KeyboardInterrupt:
-        print("\n[SERVER] Interrotto")
+        pass
 
     finally:
         client_sock.close()
         server_sock.close()
         ser.close()
-        print("[SERVER] Chiuso.")
 
 if __name__ == "__main__":
     avvioSistema()

@@ -17,8 +17,7 @@ import threading
 from datetime import datetime
 
 database = {
-    "user1": {"nome": "Andrea", "password": "pass1", "saldo": 1000, "transazioni": []},
-    "user2": {"nome": "Marco", "password": "pass2", "saldo": 500, "transazioni": []},
+    "user1": {"nome": "Andrea", "password": "pass1", "saldo": 1000, "transazioni": []}
 }
 bt_socket = None
 
@@ -31,11 +30,8 @@ def connetti_server():
     try:
         bt_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         bt_socket.connect((server_address, port))
-        print("Connessione riuscita")
         
         saldo_iniziale = bt_socket.recv(1024).decode()
-        print("saldo ricevuto:", saldo_iniziale)
-
         dati_transazioni = bt_socket.recv(4096).decode(errors='ignore')  # buffer più grande
         transazioni = dati_transazioni.split("###")
         database["user1"]["transazioni"] = transazioni if transazioni != [''] else []
@@ -43,18 +39,15 @@ def connetti_server():
         database["user1"]["saldo"] = float(saldo_iniziale)
         
     except Exception as e:
-        print(f"Errore nella connessione: {e}")
+        pass
 
     
 def gestisci_bluetooth():
         while True:
             try:
                 saldo_iniziale = bt_socket.recv(1024).decode()
-                print("saldo ricevuto:", saldo_iniziale)
-
                 database["user1"]["saldo"] = float(saldo_iniziale)
             except Exception as e:
-                print(f"Errore {e}")
                 time.sleep(1)
 
 class MyScreenManager(ScreenManager):
@@ -198,7 +191,7 @@ class PrelevaScreen(Screen):
                     try:
                         bt_socket.send(transazione.encode('utf-8')) 
                     except:
-                        print("Errore nell'invio transazione")
+                        pass
 
                 popup = Popup(title="Successo", content=Label(text="Prelievo effettuato!"), size_hint=(0.6, 0.3))
                 popup.open()
@@ -244,7 +237,7 @@ class DepositaScreen(Screen):
                     try:
                         bt_socket.send(transazione.encode('utf-8')) 
                     except:
-                        print("Errore nell'invio transazione")
+                        pass
 
                 popup = Popup(title="Successo", content=Label(text="Deposito effettuato!"), size_hint=(0.6, 0.3))
                 popup.open()
@@ -290,9 +283,6 @@ class VisualizzaScreen(Screen):
                 self.transazioni_box.add_widget(Label(text=transazione, size_hint_y=None, height=30))
         else:
             self.transazioni_box.add_widget(Label(text="Nessuna transazione effettuata.", size_hint_y=None, height=30))
-
-        
-
 
 # Screen Manager
 class MyApp(App):
