@@ -82,12 +82,14 @@ def avvioSistema():
         while True:
             # 1) Serial
             try:
+                ser.write((str(calcolaTotale()) + '\n').encode('utf-8'))
                 line = ser.readline().decode(errors='ignore').strip()
+                if line != "": 
+                    print(f"{line}")
                 if line and ("entrata" in line or "uscita" in line):
                     aggiungi_transazione(line)
                     saldo = calcolaTotale()
                     client_sock.send(f"{saldo}".encode('utf-8'))
-                    print(f"[SERIALE] {line} → saldo {saldo}")
             except Exception as e:
                 print(f"[SERIALE] Errore: {e}")
 
@@ -100,7 +102,7 @@ def avvioSistema():
                         aggiungi_transazione(stringa)
                         saldo = calcolaTotale()
                         client_sock.send(f"{saldo}".encode('utf-8'))
-                        print(f"[BLUETOOTH] {stringa} → saldo {saldo}")
+                        ser.write((str(calcolaTotale()) + '\n').encode('utf-8'))
             except bluetooth.btcommon.BluetoothError:
                 pass
 
