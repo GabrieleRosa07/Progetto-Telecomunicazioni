@@ -76,20 +76,39 @@ def avvioSistema():
 
     # Invia subito saldo iniziale come stringa
     client_sock.send(f"{saldo}".encode('utf-8'))
+    time.sleep(0.5)  # aspetta un pochino per evitare collisione
+
+    # Invia lista transazioni
+    con = sqlite3.connect(DB_PATH)
+    cur = con.cursor()
+    cur.execute("SELECT tipo, data, importo, descrizione FROM transazioni")
+    righe = cur.fetchall()
+    con.close()
+
+    # Prepara tutte le transazioni come stringhe
+    transazioni = [f"{tipo} {data} {importo} {descrizione}" for tipo, data, importo, descrizione in righe]
+    # Unisci tutte le transazioni separandole con il carattere speciale ###
+    pacchetto = "###".join(transazioni)
+    client_sock.send(pacchetto.encode('utf-8'))
     print(f"[SERVER] Inviato saldo iniziale: {saldo}")
 
     try:
         while True:
+            saldo = calcolaTotale()
             # 1) Serial
             try:
-                ser.write((str(calcolaTotale()) + '\n').encode('utf-8'))
+                ser.write((str(saldo) + '\n').encode('utf-8'))
+            except Exception as e:
+                print(f"Errore scrittura seriale: {e}")
+
+            try:
                 line = ser.readline().decode(errors='ignore').strip()
-                if line != "": 
+                if line: 
                     print(f"{line}")
-                if line and ("entrata" in line or "uscita" in line):
-                    aggiungi_transazione(line)
-                    saldo = calcolaTotale()
-                    client_sock.send(f"{saldo}".encode('utf-8'))
+                    if "entrata" in line or "uscita" in line:
+                        aggiungi_transazione(line)
+                        saldo = calcolaTotale()
+                        client_sock.send(f"{saldo}".encode('utf-8'))
             except Exception as e:
                 print(f"[SERIALE] Errore: {e}")
 
@@ -105,6 +124,14 @@ def avvioSistema():
                         ser.write((str(calcolaTotale()) + '\n').encode('utf-8'))
             except bluetooth.btcommon.BluetoothError:
                 pass
+
+            saldo = calcolaTotale()
+            try:
+                client_sock.send(str(saldo).encode('utf-8'))
+            except Exception as e:
+                print("Terminato manualmente")
+
+            time.sleep(0.5)
 
     except KeyboardInterrupt:
         print("\n[SERVER] Interrotto")

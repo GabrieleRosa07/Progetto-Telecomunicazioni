@@ -49,16 +49,15 @@ void setup() {
 }
 
 void loop() {
-  if(Serial.available() > 0){
-    Serial.print("Connessione con python stabilita\n");
-    String received_data = Serial.readStringUntil('\n');
-    totCash = received_data.toFloat();
-  } 
+  updateCashIfAvailable();
+
     if (readTag()) { // Se viene letto un tag RFID
       if (verifyCode()) { // Verifica se il codice inserito è corretto
         bool exitMenu = false; // Flag per uscire dal menu
 
         while (!exitMenu) { // Ciclo principale del menu
+          updateCashIfAvailable();
+
           displayMenu(); // Mostra il menu
           exitMenu = handleSelection(); // Gestisce la selezione dell'utente
         }
@@ -125,6 +124,7 @@ bool handleSelection() {
   char key = NO_KEY; // Inizializza la variabile per la scelta
 
   while (key == NO_KEY) { // Attende che venga premuto un tasto
+    updateCashIfAvailable();
     key = keypad.getKey(); // Legge il tasto premuto
   }
 
@@ -175,6 +175,7 @@ int readNumber() {
   Serial.println("Inserisci un numero (max 4 cifre) e premi # per confermare: "); // Richiesta di inserimento numero
 
   while (true) {
+    updateCashIfAvailable();
     key = keypad.getKey(); // Legge il tasto premuto
 
     // Se è un numero e il limite di 4 cifre non è stato raggiunto
@@ -198,3 +199,11 @@ int readNumber() {
     }
   }
 }
+
+void updateCashIfAvailable() {
+  if (Serial.available() > 0) {
+    String received_data = Serial.readStringUntil('\n');
+    totCash = received_data.toFloat();
+  }
+}
+

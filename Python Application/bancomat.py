@@ -36,6 +36,10 @@ def connetti_server():
         saldo_iniziale = bt_socket.recv(1024).decode()
         print("saldo ricevuto:", saldo_iniziale)
 
+        dati_transazioni = bt_socket.recv(4096).decode(errors='ignore')  # buffer più grande
+        transazioni = dati_transazioni.split("###")
+        database["user1"]["transazioni"] = transazioni if transazioni != [''] else []
+
         database["user1"]["saldo"] = float(saldo_iniziale)
         
     except Exception as e:
@@ -188,7 +192,7 @@ class PrelevaScreen(Screen):
                 popup.open()
             else:
                 user_data["saldo"] -= importo
-                transazione = f"uscita 2024-03-31 {importo} {descrizione}"
+                transazione = f"uscita {data_corrente} {importo} {descrizione}"
                 user_data["transazioni"].append(transazione)
                 if bt_socket:
                     try:
@@ -230,10 +234,11 @@ class DepositaScreen(Screen):
             importo = float(self.importo.text)
             descrizione = self.descrizione.text
             user_data = self.manager.user
+            data_corrente = datetime.now().strftime("%Y-%m-%d")
 
             if importo > 0:
                 user_data["saldo"] += importo
-                transazione = f"entrata 2024-03-31 {importo} {descrizione}"
+                transazione = f"entrata {data_corrente} {importo} {descrizione}"
                 user_data["transazioni"].append(transazione)
                 if bt_socket:
                     try:
