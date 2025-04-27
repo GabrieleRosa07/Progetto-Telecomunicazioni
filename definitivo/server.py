@@ -49,6 +49,7 @@ def snapshot_png():
         return send_file(buf, mimetype='image/png')
     return send_file(io.BytesIO(data), mimetype='image/png')
 
+
 def run_flask():
     app.run(host='0.0.0.0', port=5000, threaded=True)
 
@@ -63,7 +64,8 @@ def setup_db():
             data TEXT,
             importo REAL,
             descrizione TEXT
-        )"""
+        )
+        """
     )
     con.commit()
     con.close()
@@ -212,10 +214,11 @@ def avvio_sistema(gui: SerialMonitorGUI):
         if ser:
             ser.close()
 
+
 if __name__ == '__main__':
     gui = SerialMonitorGUI()
     threading.Thread(target=run_flask, daemon=True).start()
     threading.Thread(target=avvio_sistema, args=(gui,), daemon=True).start()
     gui.mainloop()
     # Stop the virtual display on exit
-display.stop()
+    display.stop()
