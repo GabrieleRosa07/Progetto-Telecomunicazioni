@@ -16,10 +16,11 @@ Il sistema è composto da:
         * Invia i dati al Raspberry Pi 2 tramite connessione Bluetooth.
         * Gestisce un database locale per la registrazione delle transazioni.
         * Invia aggiornamenti di stato all'Arduino e al Raspberry Pi 2.
+        * Tramite server Flask crea una pagina HTML per visualizzare i messaggi inviati dall' Arduino con la connessione seriale
     * **Raspberry Pi 2**:
-        * Ospita un server Flask che esegue un'applicazione web Python.
+        * Genera un' applicazione web utilizzando il framework Kivy (in modo da poter essere utilizzato eventualmente anche da smartphone).
         * L'applicazione web presenta la home page della banca, visualizza le transazioni e consente l'esecuzione di operazioni bancarie.
-        * L'applicazione è accessibile anche da smartphone, con autenticazione tramite tag NFC/RFID.
+        * ##implementaziome futura: l'applicazione potrebbe essere accessibile anche da smartphone, con autenticazione tramite tag NFC/RFID.
 
 ## Flusso di Lavoro
 
