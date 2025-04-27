@@ -1,8 +1,13 @@
+import os
+# Use mock window for headless Kivy (no X server)
+os.environ['KIVY_WINDOW'] = 'mock'
+
 import threading
 import time
 import io
 import sqlite3
 import bluetooth
+import uuid
 
 from kivy.app import App
 from kivy.uix.textinput import TextInput
@@ -24,10 +29,12 @@ current_frame = io.BytesIO()
 def create_flask_app():
     app = Flask(__name__)
     html = '''
-        <html><head><meta http-equiv="refresh" content="1"><title>Server Monitor</title></head>
-        <body style="margin:0;padding:0;overflow:hidden;">
-          <img src="/stream" style="width:100vw;height:100vh;object-fit:contain;" />
-        </body></html>'''
+    <html>
+      <head><meta http-equiv="refresh" content="1"><title>Server Monitor</title></head>
+      <body style="margin:0;padding:0;overflow:hidden;">
+        <img src="/stream" style="width:100vw;height:100vh;object-fit:contain;" />
+      </body>
+    </html>'''
 
     @app.route('/')
     def index():
@@ -128,7 +135,9 @@ def serial_bluetooth_loop():
         ser = None
     sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     sock.bind(('',1)); sock.listen(1)
-    bluetooth.advertise_service(sock,'TransServ',service_id=str(uuid.uuid4()),service_classes=[bluetooth.SERIAL_PORT_CLASS],profiles=[bluetooth.SERIAL_PORT_PROFILE])
+    bluetooth.advertise_service(sock,'TransServ',service_id=str(uuid.uuid4()),
+                                 service_classes=[bluetooth.SERIAL_PORT_CLASS],
+                                 profiles=[bluetooth.SERIAL_PORT_PROFILE])
     client, addr = sock.accept(); client.settimeout(0.5)
     client.send(f"{saldo}".encode()); time.sleep(0.5)
 
@@ -165,3 +174,4 @@ def process_line(line, client):
 
 if __name__=='__main__':
     MonitorApp().run()
+
