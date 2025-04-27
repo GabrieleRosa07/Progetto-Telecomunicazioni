@@ -4,89 +4,105 @@ import io
 import sqlite3
 import bluetooth
 import serial
-from tkinter import Tk, Text, Scrollbar, RIGHT, LEFT, BOTH, Y, END
 from PIL import Image
 from flask import Flask, send_file, render_template_string
 
+# Use a virtual display for headless operation
+from pyvirtualdisplay import Display
+from tkinter import Tk, Text, Scrollbar, RIGHT, LEFT, BOTH, Y, END
+
+# Start a virtual X server before any Tkinter GUI is created
+display = Display(visible=0, size=(1024, 768), backend="xvfb", use_xauth=True)
+display.start()
+
 DB_PATH = "finanza.db"
 
-app = Flask(__name__)
-latest_snapshot = None
-snapshot_lock = threading.Lock()
-
-HTML_PAGE = """
+# Flask setup
+template_page = """
 <html>
-  <head><meta http-equiv="refresh" content="1"><title>Server Monitor</title></head>
+  <head>
+    <meta http-equiv="refresh" content="1">
+    <title>Server Monitor</title>
+  </head>
   <body style="margin:0; padding:0; overflow:hidden;">
     <img src="/snapshot.png" style="width:100vw; height:100vh; object-fit:contain;"/>
   </body>
 </html>
 """
+app = Flask(__name__)
+latest_snapshot = None
+snapshot_lock = threading.Lock()
 
 @app.route('/')
 def index():
-    return render_template_string(HTML_PAGE)
+    return render_template_string(template_page)
 
 @app.route('/snapshot.png')
 def snapshot_png():
     with snapshot_lock:
         data = latest_snapshot
     if data is None:
-        # placeholder nera
-        img = Image.new('RGB', (800,600), 'black')
+        # return a black placeholder
+        img = Image.new('RGB', (1024, 768), 'black')
         buf = io.BytesIO()
-        img.save(buf, 'PNG'); buf.seek(0)
+        img.save(buf, 'PNG')
+        buf.seek(0)
         return send_file(buf, mimetype='image/png')
     return send_file(io.BytesIO(data), mimetype='image/png')
 
 def run_flask():
+    # Accessible on port 5000
     app.run(host='0.0.0.0', port=5000, threaded=True)
-
 
 def setup_db():
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS transazioni (
-            tipo TEXT, 
-            data TEXT, 
-            importo REAL, 
-            descrizione TEXT
-        )
-    """)
-    con.commit()
-    con.close()
-
-def aggiungi_transazione(t):
-    parole = t.split()
-    tipo, data, importo = parole[0], parole[1], float(parole[2])
-    descrizione = ' '.join(parole[3:])
-    con = sqlite3.connect(DB_PATH)
-    cur = con.cursor()
     cur.execute(
-        "INSERT INTO transazioni (tipo, data, importo, descrizione) VALUES (?, ?, ?, ?)",
-        (tipo, data, importo, descrizione)
+        """
+        CREATE TABLE IF NOT EXISTS transazioni (
+            tipo TEXT,
+            data TEXT,
+            importo REAL,
+            descrizione TEXT
+        )"""
     )
     con.commit()
     con.close()
 
-def calcolaTotale():
+def aggiungi_transazione(t):
+    parts = t.split()
+    tipo, data_str, importo = parts[0], parts[1], float(parts[2])
+    descrizione = ' '.join(parts[3:])
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
-    cur.execute("""
-        SELECT 
-            COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END),0)
-            - COALESCE(SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END),0)
-        FROM transazioni
-    """)
-    bilancio = cur.fetchone()[0] or 0.0
+    cur.execute(
+        "INSERT INTO transazioni (tipo, data, importo, descrizione) VALUES (?, ?, ?, ?)",
+        (tipo, data_str, importo, descrizione)
+    )
+    con.commit()
     con.close()
-    return bilancio
+
+def calcola_totale():
+    con = sqlite3.connect(DB_PATH)
+    cur = con.cursor()
+    cur.execute(
+        """
+        SELECT
+            COALESCE(SUM(CASE WHEN tipo='entrata' THEN importo ELSE 0 END), 0)
+            - COALESCE(SUM(CASE WHEN tipo='uscita' THEN importo ELSE 0 END), 0)
+        FROM transazioni
+        """
+    )
+    saldo = cur.fetchone()[0] or 0.0
+    con.close()
+    return saldo
 
 class SerialMonitorGUI:
     def __init__(self):
+        # Initialize the Tkinter GUI
         self.root = Tk()
         self.root.title("Server Serial Monitor")
+
         self.text = Text(self.root, wrap='none')
         sb = Scrollbar(self.root, command=self.text.yview)
         self.text.configure(yscrollcommand=sb.set)
@@ -99,7 +115,7 @@ class SerialMonitorGUI:
         self.capture_snapshot()
 
     def capture_snapshot(self):
-        # Genera PostScript e converte in PNG via PIL
+        # Capture current text widget to a PNG via virtual display
         ps = self.text.postscript(colormode='color')
         img = Image.open(io.BytesIO(ps.encode('utf-8')))
         buf = io.BytesIO()
@@ -112,24 +128,24 @@ class SerialMonitorGUI:
         self.root.mainloop()
 
 
-def avvioSistema(gui: SerialMonitorGUI):
+def avvio_sistema(gui: SerialMonitorGUI):
     setup_db()
-    # Inizialmente calcola saldo
-    saldo = calcolaTotale()
+    saldo = calcola_totale()
 
-    # Apri seriale Arduino
+    # Open serial to Arduino
     try:
         ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
         time.sleep(2)
-    except Exception as e:
-        return
+    except Exception:
+        ser = None
 
-    # Avvia server Bluetooth su porta 1
+    # Start Bluetooth server
     server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     server_sock.bind(("", 1))
     server_sock.listen(1)
     bluetooth.advertise_service(
-        server_sock, "TransactionServer",
+        server_sock,
+        "TransactionServer",
         service_id="94f39d29-7d6d-437d-973b-fba39e49d4ee",
         service_classes=[bluetooth.SERIAL_PORT_CLASS],
         profiles=[bluetooth.SERIAL_PORT_PROFILE]
@@ -137,60 +153,59 @@ def avvioSistema(gui: SerialMonitorGUI):
     client_sock, addr = server_sock.accept()
     client_sock.settimeout(0.5)
 
-    # Invia subito saldo iniziale come stringa
-    client_sock.send(f"{saldo}".encode('utf-8'))
-    time.sleep(0.5)  # aspetta un pochino per evitare collisione
+    # Send initial balance
+    client_sock.send(f"{saldo}".encode())
+    time.sleep(0.5)
 
-    # Invia lista transazioni
+    # Send historical transactions
     con = sqlite3.connect(DB_PATH)
     cur = con.cursor()
     cur.execute("SELECT tipo, data, importo, descrizione FROM transazioni")
-    righe = cur.fetchall()
+    rows = cur.fetchall()
     con.close()
-
-    # Prepara tutte le transazioni come stringhe
-    transazioni = [f"{tipo} {data} {importo} {descrizione}" for tipo, data, importo, descrizione in righe]
-    # Unisci tutte le transazioni separandole con il carattere speciale ###
-    pacchetto = "###".join(transazioni)
-    client_sock.send(pacchetto.encode('utf-8'))
+    packet = "###".join(f"{t[0]} {t[1]} {t[2]} {t[3]}" for t in rows)
+    client_sock.send(packet.encode())
 
     try:
         while True:
-            saldo = calcolaTotale()
-            # 1) Serial
-            try:
-                ser.write((str(saldo) + '\n').encode('utf-8'))
-            except Exception as e:
-                pass
+            saldo = calcola_totale()
 
-            try:
-                line = ser.readline().decode(errors='ignore').strip()
-                if line: 
-                    gui.append_line(line)                   
-                    if "entrata" in line or "uscita" in line:
-                        aggiungi_transazione(line)
-                        saldo = calcolaTotale()
-                        client_sock.send(f"{saldo}".encode('utf-8'))
-            except Exception as e:
-                pass
+            # Serial write
+            if ser:
+                try:
+                    ser.write((str(saldo) + '\n').encode())
+                except Exception:
+                    pass
 
-            # 2) Bluetooth
+                try:
+                    line = ser.readline().decode(errors='ignore').strip()
+                    if line:
+                        gui.append_line(line)
+                        if 'entrata' in line or 'uscita' in line:
+                            aggiungi_transazione(line)
+                            saldo = calcola_totale()
+                            client_sock.send(f"{saldo}".encode())
+                except Exception:
+                    pass
+
+            # Bluetooth receive
             try:
                 data = client_sock.recv(1024)
                 if data:
-                    stringa = data.decode(errors='ignore').strip()
-                    if "entrata" in stringa or "uscita" in stringa:
-                        aggiungi_transazione(stringa)
-                        saldo = calcolaTotale()
-                        client_sock.send(f"{saldo}".encode('utf-8'))
-                        ser.write((str(calcolaTotale()) + '\n').encode('utf-8'))
-            except bluetooth.btcommon.BluetoothError:
+                    s = data.decode(errors='ignore').strip()
+                    if 'entrata' in s or 'uscita' in s:
+                        aggiungi_transazione(s)
+                        saldo = calcola_totale()
+                        client_sock.send(f"{saldo}".encode())
+                        if ser:
+                            ser.write((str(saldo) + '\n').encode())
+            except Exception:
                 pass
 
-            saldo = calcolaTotale()
+            # Always send updated balance
             try:
-                client_sock.send(str(saldo).encode('utf-8'))
-            except Exception as e:
+                client_sock.send(f"{saldo}".encode())
+            except Exception:
                 pass
 
             time.sleep(0.5)
@@ -201,11 +216,15 @@ def avvioSistema(gui: SerialMonitorGUI):
     finally:
         client_sock.close()
         server_sock.close()
-        ser.close()
+        if ser:
+            ser.close()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    # Launch Flask and Serial GUI threads
     gui = SerialMonitorGUI()
-
     threading.Thread(target=run_flask, daemon=True).start()
-    threading.Thread(target=avvioSistema, args=(gui,), daemon=True).start()
+    threading.Thread(target=avvio_sistema, args=(gui,), daemon=True).start()
     gui.mainloop()
+
+    # Stop the virtual display on exit
+display.stop()
