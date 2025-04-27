@@ -1,4 +1,4 @@
-Ecco il codice completo in formato `.md`, pronto per essere copiato direttamente nel tuo editor:
+
 
 ```markdown
 # Specifiche Tecniche Dettagliate
