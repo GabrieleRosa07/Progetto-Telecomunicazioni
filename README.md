@@ -20,7 +20,7 @@ Il sistema è composto da:
     * **Raspberry Pi 2**:
         * Genera un' applicazione web utilizzando il framework Kivy (in modo da poter essere utilizzato eventualmente anche da smartphone).
         * L'applicazione web presenta la home page della banca, visualizza le transazioni e consente l'esecuzione di operazioni bancarie.
-        * ##implementaziome futura: l'applicazione potrebbe essere accessibile anche da smartphone, con autenticazione tramite tag NFC/RFID.
+        * ## implementazione futura: l'applicazione potrebbe essere accessibile anche da smartphone, con autenticazione tramite tag NFC/RFID.
 
 ## Flusso di Lavoro
 
