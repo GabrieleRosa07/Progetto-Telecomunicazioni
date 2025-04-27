@@ -14,72 +14,7 @@ from kivy.uix.image import Image
 import bluetooth
 import time
 import threading
-from flask import Flask, Response, render_template_string
-import io
-import time
-import pyautogui
-import subprocess
-import os
-from os import path
-
-def crea_appFlask():
-    app = Flask(__name__)
-
-    @app.route('/')
-    def index():
-        return render_template_string('''
-            <!DOCTYPE html>
-            <html lang="it">
-            <head>
-                <meta charset="UTF-8">
-                <title>Interfaccia Kivy</title>
-                <style>
-                    body { margin: 0; background: #000; }
-                    img { width: 100vw; height: auto; display: block; }
-                </style>
-            </head>
-            <body>
-                <img src="/image" alt="Kivy Stream">
-            </body>
-            </html>
-        ''')
-
-    @app.route('/image')
-    def image():
-        def generate():
-            while True:
-                try:
-                    frame = current_image.getvalue()
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/png\r\n\r\n' + frame + b'\r\n')
-                except Exception:
-                    pass
-                time.sleep(0.5)
-        return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-    return app
-
-current_image = io.BytesIO()
-
-def cattura_via_fbo(dt):
-    # Crea Fbo della dimensione della finestra
-    fbo = Fbo(size=Window.size)
-    with fbo:
-        ClearColor(0, 0, 0, 0)
-        ClearBuffers()
-        Scale(1, -1, 1)
-        Translate(0, -Window.height, 0)
-        # Disegna il canvas corrente nel FBO
-        Window.canvas.ask_update()
-        fbo.add(Window.canvas)
-    fbo.draw()
-    # Estrai texture e salva in buffer PNG
-    img = CoreImage(fbo.texture)
-    buf = io.BytesIO()
-    img.save(buf, fmt='png')
-    buf.seek(0)
-    global current_image
-    current_image = buf
+from datetime import datetime
 
 database = {
     "user1": {"nome": "Andrea", "password": "pass1", "saldo": 1000, "transazioni": []},
@@ -90,27 +25,33 @@ bt_socket = None
 def connetti_server():
     global bt_socket
     
-    server_address = "B8:27:EB:62:DD:D0"
+    server_address = "D8:3A:DD:ED:86:AE"
     port = 1
 
     try:
         bt_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         bt_socket.connect((server_address, port))
         print("Connessione riuscita")
-
+        
         saldo_iniziale = bt_socket.recv(1024).decode()
         print("saldo ricevuto:", saldo_iniziale)
 
-        database["client"]={
-            "nome": "utente",
-            "password":"1234",
-            "saldo": float(saldo_iniziale),
-            "transazioni":[],
-        }
+        database["user1"]["saldo"] = float(saldo_iniziale)
+        
     except Exception as e:
         print(f"Errore nella connessione: {e}")
 
+    
+def gestisci_bluetooth():
+        while True:
+            try:
+                saldo_iniziale = bt_socket.recv(1024).decode()
+                print("saldo ricevuto:", saldo_iniziale)
 
+                database["user1"]["saldo"] = float(saldo_iniziale)
+            except Exception as e:
+                print(f"Errore {e}")
+                time.sleep(1)
 
 class MyScreenManager(ScreenManager):
     def __init__(self, **kwargs):
@@ -240,6 +181,7 @@ class PrelevaScreen(Screen):
             importo = float(self.importo.text)
             descrizione = self.descrizione.text
             user_data = self.manager.user
+            data_corrente = datetime.now().strftime("%Y-%m-%d")
 
             if importo > user_data["saldo"] or self.descrizione.text == "":
                 popup = Popup(title="Errore", content=Label(text="Saldo insufficiente o descrizione mancante!"), size_hint=(0.6, 0.3))
@@ -350,11 +292,6 @@ class VisualizzaScreen(Screen):
 # Screen Manager
 class MyApp(App):
     def build(self):
-        Clock.schedule_interval(cattura_via_fbo, 1.0/2)
-
-        threading.Thread(target=lambda: crea_appFlask().run(host='0.0.0.0',port=5000),daemon=True).start()
-        threading.Thread(target=connetti_server, daemon=True).start()
-
         sm = MyScreenManager()
         sm.add_widget(LoginScreen(name="login"))
         sm.add_widget(RegisterScreen(name="register"))
@@ -366,5 +303,7 @@ class MyApp(App):
 
 
 if __name__ == "__main__":
-
+    connetti_server()
+    threading.Thread(target=gestisci_bluetooth, daemon=True).start()
+    time.sleep(1)
     MyApp().run()
