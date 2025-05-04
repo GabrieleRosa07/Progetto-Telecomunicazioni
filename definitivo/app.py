@@ -42,13 +42,35 @@ def connetti_server():
         pass
 
     
+from kivy.base import EventLoop
+
 def gestisci_bluetooth():
-        while True:
-            try:
-                saldo_iniziale = bt_socket.recv(1024).decode()
-                database["user1"]["saldo"] = float(saldo_iniziale)
-            except Exception as e:
-                time.sleep(1)
+    ricevute = set(database["user1"].get("transazioni", []))  # per evitare duplicati
+
+    while True:
+        try:
+            data = bt_socket.recv(4096).decode(errors='ignore')
+
+            if not data:
+                continue
+
+            transazioni_nuove = data.split("###")
+            for transazione in transazioni_nuove:
+                transazione = transazione.strip()
+                if transazione and transazione not in ricevute:
+                    ricevute.add(transazione)
+                    database["user1"]["transazioni"].append(transazione)
+
+                    # Mostra popup in modo thread-safe
+                    def mostra_popup(dt):
+                        popup = Popup(title="Nuova Transazione",
+                                      content=Label(text=f"Ricevuta: {transazione}"),
+                                      size_hint=(0.7, 0.3))
+                        popup.open()
+                    Clock.schedule_once(mostra_popup)
+        except Exception as e:
+            time.sleep(1)
+
 
 class MyScreenManager(ScreenManager):
     def __init__(self, **kwargs):
