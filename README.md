@@ -1,36 +1,60 @@
 
-
-```markdown
 # Specifiche Tecniche Dettagliate
 
 Questa documentazione descrive in profondità l’architettura, i componenti e il flusso di funzionamento del sistema che integra:
 
-- **Flask + SSE** per streaming in tempo reale di transazioni su interfaccia web  
-- **Comunicazione Serial e Bluetooth** per interfacciarsi con dispositivi esterni  
-- **SQLite** per persistenza locale delle transazioni
+- Lettore RFID e tastiera fisica collegati ad Arduino
+
+- Gestione delle transazioni e saldo su server Python
+
+- Visualizzazione in tempo reale tramite interfaccia web (Flask + Server-Sent Events)
+
+
 
 ---
 
 ## 1. Panoramica Architetturale
+```
+ATM-System/
+├── server.py        # Riceve da Arduino via seriale, aggiorna DB SQLite, invia dati all'app,Server Flask + SSE per mostrare transazioni live e pagina web HTML che funge da monitor ATM
+├── app.py           # Implementa l'interfaccia grafica Kivy dell'home banking, comunica con il server tramite bluetooth
+├── database.db      # SQLite con tabella delle transazioni
+└── arduino/
+    └── atm_rfid.ino # Codice per Arduino con RFID e Keypad e connessione seriale
 
-┌───────────────────────────────────────────────────────────┐  
-│ 1) Thread Flask (host:5000) ───────── SSE ───► Browser │  
-│ │  
-│ 2) Thread Serial+Bluetooth ──► lines[] ──► DB SQLite │  
-│ │  
-│ │  
-└─► aggiorna saldo ────┘  
-└───────────────────────────────────────────────────────────┘
+```
+**Requisiti e componenti**
+  - *Due Raspberry pi*: uno collegato alla LAN
+  - *Python* e tutte le librerie necessarie
+  - *Arduino*: modulo RFID RC522, Keypad 4x4
 
-- **Thread Flask**  
-  - Espone due endpoint:
-    - `/` → pagina HTML + JS SSE  
-    - `/stream-lines` → stream continuativo di dati via _Server-Sent Events_  
-- **Thread Serial+Bluetooth**  
-  - Instanzia DB, apre porta seriale e socket RFCOMM  
-  - Popola buffer `lines[]`, inserisce record in SQLite  
-  - Comunica bidirezionalmente con client Bluetooth  
-
+**Funzionalità**
+  - **Arduino**
+      - Rileva RFID
+      - Chiede codice PIN
+      - Menu:
+          - Inserisci contanti
+          - Preleva contanti
+          - Mostra saldo
+          - Esci
+      - Invia le operazioni al server tramite USB Serial
+      - Riceve e mostra saldo aggiornato
+        
+  - **Server**
+      - Legge le stringhe inviate da Arduino
+      - Analizza le operazioni (entrata/uscita)
+      - Salva le transazioni in SQLite
+      - Ricalcola il saldo
+      - Invia il nuovo saldo ad Arduino
+      - Invia il saldo e ogni transazione di Arduino all'app tramite bluetooth
+      - riceve dall'app le transazioni effettuate dall'home banking
+      - Fornisce una pagina web con movimenti live via SSE (Server-Sent Events) per simulare il monitor dell'ATM
+        
+  - **App**
+      - Genera l'interfaccia grafica utilizzando il framework Kivy (in modo da poter essere usato anche da smartphone)
+      - Gestisce l'accesso con username e password
+      - Permette la visualizzazione del saldo con la lista delle transazioni e di effettuare i movimenti (depoiti e incassi)
+      - Riceve e trasmette tramite bluetooth tutte le informazioni riguardanti le transazioni effettuate sia da app che da ATM
 ---
 
 ## 2. Database Layer
